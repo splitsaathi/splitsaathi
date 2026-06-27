@@ -1,0 +1,55 @@
+========================================
+SPLITSAATHI — PROJECT DETAILS
+========================================
+
+🌐 WEB APP
+URL: https://splitsaathi.com
+Admin Panel: https://splitsaathi.com/admin
+Admin Email: admin@splitsaathi.com
+Admin Password: SplitSaathi@Admin2024
+
+📁 LOCAL PROJECT
+Folder: D:\SplitSaathi
+Build Command: npm run build:web
+Deploy: git add . && git commit -m "msg" && git push
+
+🐙 GITHUB
+URL: https://github.com/splitsaathi/splitsaathi
+Account: splitsaathi
+Email: clipkaro@gmail.com
+
+▲ VERCEL
+URL: https://vercel.com/splitsaathi/splitsaathi
+Account: splitsaathi (clipkaro@gmail.com)
+
+🗄️ SUPABASE
+URL: https://supabase.com/dashboard/project/bmhgnbvaufeafhennvaj
+Project ID: bmhgnbvaufeafhennvaj
+Supabase URL: https://bmhgnbvaufeafhennvaj.supabase.co
+Anon Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Account: clipkaro@gmail.com
+
+📱 EXPO / EAS
+Account: splitsaathi
+Project ID: 533eb29d-8618-4ec1-b893-f7fcaaeb5650
+EAS Build: eas build --platform android --profile production
+
+🔑 APP CONFIG
+Android Package: com.yourcompany.splitsaathi
+iOS Bundle ID: com.yourcompany.splitsaathi
+App Version: 1.0.0
+
+🚀 FUTURE UPDATES
+1. Code change karo
+2. npm run build:web
+3. git add .
+4. git commit -m "kya change kiya"
+5. git push
+Vercel automatically deploy karega!
+
+📞 SUPPORT
+Claude.ai pe context do:
+"SplitSaathi React Native app,
+Expo + Supabase, splitsaathi.com pe live,
+D:\SplitSaathi folder mein hai"
+========================================
