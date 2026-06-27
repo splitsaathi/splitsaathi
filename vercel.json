@@ -1,8 +1,8 @@
 {
   "outputDirectory": "dist",
   "installCommand": "npm install --legacy-peer-deps",
-  "routes": [
-    { "src": "/admin", "dest": "/admin/index.html" },
-    { "src": "/admin/(.*)", "dest": "/admin/index.html" }
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin/index.html" },
+    { "source": "/admin/(.*)", "destination": "/admin/index.html" }
   ]
 }
