@@ -1,4 +1,14 @@
 const fs = require('fs');
-fs.mkdirSync('dist/admin', { recursive: true });
-fs.copyFileSync('dist/admin.html', 'dist/admin/index.html');
-console.log('✅ Admin panel copied to dist/admin/index.html');
+const path = require('path');
+
+const adminDir = path.join(__dirname, 'dist', 'admin');
+const srcFile = path.join(__dirname, 'dist', 'admin', 'index.html');
+
+// Admin folder already exists with index.html from git
+if (fs.existsSync(srcFile)) {
+  console.log('✅ Admin panel already exists at dist/admin/index.html');
+} else {
+  // Create from the admin HTML content
+  fs.mkdirSync(adminDir, { recursive: true });
+  console.log('✅ Admin directory created');
+}
