@@ -1,16 +1,4 @@
 {
-  "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
-  "installCommand": "npm install --legacy-peer-deps && chmod +x node_modules/.bin/expo",
-  "headers": [
-    {
-      "source": "/(.*).js",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/javascript; charset=utf-8"
-        }
-      ]
-    }
-  ]
+  "installCommand": "npm install --legacy-peer-deps"
 }
