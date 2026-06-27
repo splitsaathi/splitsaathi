@@ -19,7 +19,7 @@ export default function ReferAndEarnScreen({ navigation }) {
   const rewardPoints = 150;
 
   const referralCode = `SPLIT${(profile?.name || 'USER').slice(0,4).toUpperCase()}${1234}`;
-  const referralLink = `https://splitsaathi.app/join?ref=${referralCode}`;
+  const referralLink = `https://splitsaathi.com/join?ref=${referralCode}`;
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(referralLink);

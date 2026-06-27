@@ -275,12 +275,12 @@ export default function AddFriendScreen({ route, navigation }) {
               <View style={{ flex: 1, height: 1, backgroundColor: COLORS.border }} />
             </View>
             <View style={styles.linkBox}>
-              <Text style={styles.linkText}>splitsaathi.app/join/abc123</Text>
+              <Text style={styles.linkText}>splitsaathi.com/join/abc123</Text>
               <TouchableOpacity
                 style={styles.copyBtn}
                 onPress={async () => {
                   const Clipboard = await import('expo-clipboard');
-                  await Clipboard.setStringAsync('https://splitsaathi.app/join/abc123');
+                  await Clipboard.setStringAsync('https://splitsaathi.com/join/abc123');
                   Alert.alert('✓', 'Link copied!');
                 }}
               >
