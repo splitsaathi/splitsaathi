@@ -65,7 +65,6 @@ export const getGroupBills = async (groupId, userId) => {
     .order('date', { ascending: false });
 
   if (error) return { data: null, error };
-  // Privacy: only bills where user is payer or in split
   const visible = (data || []).filter(
     b => b.paid_by === userId || (b.split_among || []).includes(userId)
   );
@@ -109,6 +108,14 @@ export const addFriend = async (uid, friendId) => {
   const [a, b] = [uid, friendId].sort();
   return supabase.from('friendships')
     .upsert({ user_a: a, user_b: b, added_by: uid }, { onConflict: 'user_a,user_b' });
+};
+
+export const removeFriend = async (uid, friendId) => {
+  const [a, b] = [uid, friendId].sort();
+  return supabase.from('friendships')
+    .delete()
+    .eq('user_a', a)
+    .eq('user_b', b);
 };
 
 // ── Payments ──────────────────────────────────────────────────────────────────
