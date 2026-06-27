@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node_modules/.bin/expo export --platform web",
+  "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
-  "installCommand": "npm install --legacy-peer-deps"
+  "installCommand": "npm install --legacy-peer-deps && chmod +x node_modules/.bin/expo"
 }
