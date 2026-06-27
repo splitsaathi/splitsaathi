@@ -1,8 +1,6 @@
 {
   "outputDirectory": "dist",
-  "installCommand": "npm install --legacy-peer-deps",
   "rewrites": [
-    { "source": "/admin", "destination": "/admin/index.html" },
-    { "source": "/admin/(.*)", "destination": "/admin/index.html" }
+    { "source": "/admin", "destination": "/admin.html" }
   ]
 }
