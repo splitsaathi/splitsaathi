@@ -120,6 +120,11 @@
         "projectId": "533eb29d-8618-4ec1-b893-f7fcaaeb5650"
       }
     },
-    "owner": "splitsaathi"
+    "owner": "splitsaathi",
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/icon.png"
+    }
   }
 }
