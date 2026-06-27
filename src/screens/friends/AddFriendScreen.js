@@ -34,13 +34,23 @@ export default function AddFriendScreen({ route, navigation }) {
 
   const inviteLink = `https://splitsaathi.com/join/${profile?.id || 'invite'}`;
 
-  const doSearch = async () => {
-    if (!query.trim()) return;
+  const doSearch = async (searchQuery) => {
+    const q = (searchQuery || query).trim();
+    if (!q) return;
     setLoading(true);
-    const { data } = await searchUsers(query.trim());
+    const { data } = await searchUsers(q);
     setResults((data || []).filter(u => u.id !== profile?.id));
     setLoading(false);
   };
+
+  // Auto search jab valid email type ho
+  useEffect(() => {
+    if (query.includes('@') && query.includes('.') && query.length > 5) {
+      const timer = setTimeout(() => doSearch(query), 600);
+      return () => clearTimeout(timer);
+    }
+    if (!query.trim()) setResults([]);
+  }, [query]);
 
   const doAddFriend = async (friend) => {
     const { error } = await addFriend(profile.id, friend.id);
@@ -124,19 +134,40 @@ export default function AddFriendScreen({ route, navigation }) {
         {/* ── SEARCH TAB ── */}
         {tab === 'search' && (
           <View>
-            <Text style={styles.hint}>Search SplitSaathi users by name or email</Text>
+            <Text style={styles.hint}>
+              Email type karo — automatically search hoga ✨
+            </Text>
             <View style={styles.searchRow}>
               <TextInput
                 style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                placeholder="Name or email..." placeholderTextColor={COLORS.textMuted}
-                value={query} onChangeText={setQuery}
-                onSubmitEditing={doSearch} returnKeyType="search"
+                placeholder="Email ya naam type karo..."
+                placeholderTextColor={COLORS.textMuted}
+                value={query}
+                onChangeText={setQuery}
+                onSubmitEditing={() => doSearch()}
+                returnKeyType="search"
+                keyboardType="email-address"
+                autoCapitalize="none"
               />
-              <TouchableOpacity style={styles.searchBtn} onPress={doSearch}>
+              <TouchableOpacity style={styles.searchBtn} onPress={() => doSearch()}>
                 <Text style={{ color: '#fff', fontWeight: '700' }}>Search</Text>
               </TouchableOpacity>
             </View>
-            {loading && <ActivityIndicator color={COLORS.primary} style={{ marginTop: 20 }} />}
+
+            {/* Auto search indicator */}
+            {query.includes('@') && loading && (
+              <Text style={styles.autoSearchText}>🔍 Searching...</Text>
+            )}
+            {query.includes('@') && !loading && results.length === 0 && query.length > 5 && (
+              <Text style={styles.noResultEmail}>
+                No user found with this email. You can invite them below! 👇
+              </Text>
+            )}
+
+            {loading && !query.includes('@') && (
+              <ActivityIndicator color={COLORS.primary} style={{ marginTop: 20 }} />
+            )}
+
             {results.map(u => (
               <View key={u.id} style={styles.resultCard}>
                 <Avatar name={u.name} size={42} uri={u.avatar_url} />
@@ -153,7 +184,31 @@ export default function AddFriendScreen({ route, navigation }) {
                 </TouchableOpacity>
               </View>
             ))}
-            {results.length === 0 && query && !loading && (
+
+            {/* Agar email se nahi mila to invite option */}
+            {query.includes('@') && !loading && results.length === 0 && query.length > 5 && (
+              <View style={styles.inviteCard}>
+                <Text style={styles.inviteTitle}>Invite karo SplitSaathi pe!</Text>
+                <Text style={styles.inviteDesc}>{query} abhi SplitSaathi pe nahi hai.</Text>
+                <TouchableOpacity
+                  style={styles.inviteBtn}
+                  onPress={() => {
+                    setEmailInv(query);
+                    setTab('email');
+                  }}
+                >
+                  <Text style={styles.inviteBtnText}>📧 Email Invite Bhejo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.inviteBtn, { backgroundColor: '#25d366', marginTop: 8 }]}
+                  onPress={() => setTab('whatsapp')}
+                >
+                  <Text style={styles.inviteBtnText}>💬 WhatsApp Invite Bhejo</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {results.length === 0 && query && !loading && !query.includes('@') && (
               <Text style={styles.noResult}>No user found for "{query}"</Text>
             )}
           </View>
@@ -190,8 +245,10 @@ export default function AddFriendScreen({ route, navigation }) {
               <View>
                 <TextInput
                   style={styles.input}
-                  placeholder="🔍 Name or number..." placeholderTextColor={COLORS.textMuted}
-                  value={contactSearch} onChangeText={setContactSearch}
+                  placeholder="🔍 Name or number..."
+                  placeholderTextColor={COLORS.textMuted}
+                  value={contactSearch}
+                  onChangeText={setContactSearch}
                 />
                 {filteredContacts.map(c => {
                   const isSelected = !!selected.find(x => x.id === c.id);
@@ -287,10 +344,13 @@ export default function AddFriendScreen({ route, navigation }) {
 
             <Text style={styles.label}>EMAIL ADDRESS</Text>
             <TextInput
-              style={styles.input} placeholder="friend@example.com"
+              style={styles.input}
+              placeholder="friend@example.com"
               placeholderTextColor={COLORS.textMuted}
-              value={emailInv} onChangeText={setEmailInv}
-              keyboardType="email-address" autoCapitalize="none"
+              value={emailInv}
+              onChangeText={setEmailInv}
+              keyboardType="email-address"
+              autoCapitalize="none"
             />
 
             <View style={styles.previewBox}>
@@ -337,52 +397,59 @@ export default function AddFriendScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe:         { flex: 1, backgroundColor: COLORS.bg },
-  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.md, backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  backText:     { color: COLORS.textMuted, fontSize: 16, width: 60 },
-  headerTitle:  { color: COLORS.text, fontWeight: '700', fontSize: 16 },
-  tabScroll:    { backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.border, flexGrow: 0 },
-  tab:          { paddingHorizontal: SPACING.md, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive:    { borderBottomColor: COLORS.primary },
-  tabText:      { color: COLORS.textMuted, fontWeight: '600', fontSize: 13 },
-  tabTextActive:{ color: COLORS.primary },
-  scroll:       { padding: SPACING.md, paddingBottom: 60 },
-  hint:         { color: COLORS.textMuted, fontSize: 13, marginBottom: SPACING.md },
-  searchRow:    { flexDirection: 'row', gap: 8, marginBottom: SPACING.md },
-  input:        { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, padding: 12, color: COLORS.text, fontSize: 15, marginBottom: SPACING.md },
-  searchBtn:    { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingHorizontal: 16, justifyContent: 'center' },
-  label:        { color: COLORS.textSub, fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 0.8 },
-  resultCard:   { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 8 },
-  resultName:   { color: COLORS.text, fontWeight: '600' },
-  resultEmail:  { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  addBtn:       { backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: COLORS.primary, borderRadius: RADIUS.md, paddingHorizontal: 14, paddingVertical: 7 },
-  addBtnDone:   { backgroundColor: 'transparent', borderColor: COLORS.border },
-  addBtnText:   { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
-  noResult:     { color: COLORS.textMuted, textAlign: 'center', padding: 20 },
-  permBox:      { alignItems: 'center', padding: 24, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.border },
-  permTitle:    { color: COLORS.text, fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  permDesc:     { color: COLORS.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: SPACING.md },
-  permBtn:      { backgroundColor: COLORS.primary, borderRadius: RADIUS.lg, paddingHorizontal: 24, paddingVertical: 13, width: '100%', alignItems: 'center' },
-  permBtnText:  { color: '#fff', fontWeight: '700', fontSize: 15 },
-  contactCard:  { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 8 },
+  safe:           { flex: 1, backgroundColor: COLORS.bg },
+  header:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.md, backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  backText:       { color: COLORS.textMuted, fontSize: 16, width: 60 },
+  headerTitle:    { color: COLORS.text, fontWeight: '700', fontSize: 16 },
+  tabScroll:      { backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.border, flexGrow: 0 },
+  tab:            { paddingHorizontal: SPACING.md, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabActive:      { borderBottomColor: COLORS.primary },
+  tabText:        { color: COLORS.textMuted, fontWeight: '600', fontSize: 13 },
+  tabTextActive:  { color: COLORS.primary },
+  scroll:         { padding: SPACING.md, paddingBottom: 60 },
+  hint:           { color: COLORS.textMuted, fontSize: 13, marginBottom: SPACING.md },
+  autoSearchText: { color: COLORS.primary, fontSize: 12, marginTop: -8, marginBottom: 8 },
+  noResultEmail:  { color: COLORS.textMuted, fontSize: 13, marginTop: -4, marginBottom: 12, textAlign: 'center' },
+  searchRow:      { flexDirection: 'row', gap: 8, marginBottom: SPACING.md },
+  input:          { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, padding: 12, color: COLORS.text, fontSize: 15, marginBottom: SPACING.md },
+  searchBtn:      { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingHorizontal: 16, justifyContent: 'center' },
+  label:          { color: COLORS.textSub, fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 0.8 },
+  resultCard:     { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 8 },
+  resultName:     { color: COLORS.text, fontWeight: '600' },
+  resultEmail:    { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+  addBtn:         { backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: COLORS.primary, borderRadius: RADIUS.md, paddingHorizontal: 14, paddingVertical: 7 },
+  addBtnDone:     { backgroundColor: 'transparent', borderColor: COLORS.border },
+  addBtnText:     { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
+  noResult:       { color: COLORS.textMuted, textAlign: 'center', padding: 20 },
+  inviteCard:     { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: 20, borderWidth: 1, borderColor: COLORS.border, marginTop: 8, alignItems: 'center' },
+  inviteTitle:    { color: COLORS.text, fontWeight: '700', fontSize: 15, marginBottom: 6 },
+  inviteDesc:     { color: COLORS.textMuted, fontSize: 13, marginBottom: 16, textAlign: 'center' },
+  inviteBtn:      { backgroundColor: COLORS.primary, borderRadius: RADIUS.lg, padding: 13, width: '100%', alignItems: 'center' },
+  inviteBtnText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
+  permBox:        { alignItems: 'center', padding: 24, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.border },
+  permTitle:      { color: COLORS.text, fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  permDesc:       { color: COLORS.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: SPACING.md },
+  permBtn:        { backgroundColor: COLORS.primary, borderRadius: RADIUS.lg, paddingHorizontal: 24, paddingVertical: 13, width: '100%', alignItems: 'center' },
+  permBtnText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
+  contactCard:    { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 8 },
   contactCardSelected: { borderColor: COLORS.primary, backgroundColor: 'rgba(16,185,129,0.05)' },
-  onAppBadge:   { backgroundColor: 'rgba(16,185,129,0.15)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
-  onAppText:    { color: COLORS.primary, fontSize: 10, fontWeight: '700' },
-  addAllBtn:    { backgroundColor: COLORS.primary, borderRadius: RADIUS.lg, padding: 15, alignItems: 'center', marginTop: SPACING.md },
-  addAllBtnText:{ color: '#fff', fontWeight: '700', fontSize: 15 },
-  waHeader:     { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(37,211,102,0.08)', borderWidth: 1, borderColor: 'rgba(37,211,102,0.25)', borderRadius: RADIUS.lg, padding: 14, marginBottom: SPACING.lg },
-  waTitle:      { color: '#25d366', fontWeight: '700', fontSize: 15 },
-  waDesc:       { color: COLORS.textMuted, fontSize: 13 },
-  phoneRow:     { flexDirection: 'row', gap: 8, marginBottom: SPACING.md },
-  countryCode:  { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: 14, justifyContent: 'center' },
-  waBtn:        { backgroundColor: '#25d366', borderRadius: RADIUS.lg, padding: 15, alignItems: 'center' },
-  waBtnText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
-  divider:      { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
-  linkBox:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.md, padding: 12, borderWidth: 1, borderColor: COLORS.border },
-  linkText:     { color: COLORS.textSub, fontSize: 13, flex: 1, marginRight: 8 },
-  copyBtn:      { borderWidth: 1, borderColor: COLORS.info, borderRadius: RADIUS.sm, paddingHorizontal: 12, paddingVertical: 6 },
-  copyBtnDone:  { borderColor: COLORS.primary },
-  copyBtnText:  { color: COLORS.info, fontWeight: '600', fontSize: 12 },
-  previewBox:   { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, padding: 14, marginBottom: SPACING.md, borderWidth: 1, borderColor: COLORS.border },
-  previewLabel: { color: COLORS.textMuted, fontSize: 11, marginBottom: 6, textTransform: 'uppercase' },
+  onAppBadge:     { backgroundColor: 'rgba(16,185,129,0.15)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  onAppText:      { color: COLORS.primary, fontSize: 10, fontWeight: '700' },
+  addAllBtn:      { backgroundColor: COLORS.primary, borderRadius: RADIUS.lg, padding: 15, alignItems: 'center', marginTop: SPACING.md },
+  addAllBtnText:  { color: '#fff', fontWeight: '700', fontSize: 15 },
+  waHeader:       { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(37,211,102,0.08)', borderWidth: 1, borderColor: 'rgba(37,211,102,0.25)', borderRadius: RADIUS.lg, padding: 14, marginBottom: SPACING.lg },
+  waTitle:        { color: '#25d366', fontWeight: '700', fontSize: 15 },
+  waDesc:         { color: COLORS.textMuted, fontSize: 13 },
+  phoneRow:       { flexDirection: 'row', gap: 8, marginBottom: SPACING.md },
+  countryCode:    { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: 14, justifyContent: 'center' },
+  waBtn:          { backgroundColor: '#25d366', borderRadius: RADIUS.lg, padding: 15, alignItems: 'center' },
+  waBtnText:      { color: '#fff', fontWeight: '700', fontSize: 15 },
+  divider:        { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
+  linkBox:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.md, padding: 12, borderWidth: 1, borderColor: COLORS.border },
+  linkText:       { color: COLORS.textSub, fontSize: 13, flex: 1, marginRight: 8 },
+  copyBtn:        { borderWidth: 1, borderColor: COLORS.info, borderRadius: RADIUS.sm, paddingHorizontal: 12, paddingVertical: 6 },
+  copyBtnDone:    { borderColor: COLORS.primary },
+  copyBtnText:    { color: COLORS.info, fontWeight: '600', fontSize: 12 },
+  previewBox:     { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, padding: 14, marginBottom: SPACING.md, borderWidth: 1, borderColor: COLORS.border },
+  previewLabel:   { color: COLORS.textMuted, fontSize: 11, marginBottom: 6, textTransform: 'uppercase' },
 });
