@@ -15,11 +15,11 @@ export const useAuthStore = create((set) => ({
 // ── Groups Store ───────────────────────────────────────────────────────────────
 export const useGroupStore = create((set, get) => ({
   groups:       [],
-  groupMembers: {},  // { groupId: [profiles] }
+  groupMembers: {},
   loading:      false,
 
-  setGroups:       (groups)             => set({ groups }),
-  setGroupMembers: (groupId, members)   => set(s => ({ groupMembers: { ...s.groupMembers, [groupId]: members } })),
+  setGroups:       (groups)           => set({ groups }),
+  setGroupMembers: (groupId, members) => set(s => ({ groupMembers: { ...s.groupMembers, [groupId]: members } })),
 
   loadGroups: async (userId) => {
     set({ loading: true });
@@ -27,7 +27,6 @@ export const useGroupStore = create((set, get) => ({
     const groups   = (data || []).map(r => r.groups).filter(Boolean);
     set({ groups, loading: false });
 
-    // Load members for each group
     groups.forEach(async g => {
       const { data: mem } = await db.getGroupMembers(g.id);
       if (mem) {
@@ -37,6 +36,16 @@ export const useGroupStore = create((set, get) => ({
     });
   },
 
+  loadGroupMembers: async (groupId) => {
+    const { data: mem } = await db.getGroupMembers(groupId);
+    if (mem) {
+      const profiles = mem.map(r => r.profiles).filter(Boolean);
+      set(s => ({ groupMembers: { ...s.groupMembers, [groupId]: profiles } }));
+      return profiles;
+    }
+    return [];
+  },
+
   createGroup: async (name, icon, createdBy, memberIds) => {
     const { data, error } = await db.createGroup(name, icon, createdBy, memberIds);
     if (!error && data) {
@@ -44,11 +53,27 @@ export const useGroupStore = create((set, get) => ({
     }
     return { data, error };
   },
+
+  addMemberToGroup: async (groupId, userId, currentUserId) => {
+    const { error } = await db.addMemberToGroup(groupId, userId);
+    if (!error) {
+      await get().loadGroupMembers(groupId);
+    }
+    return { error };
+  },
+
+  removeMemberFromGroup: async (groupId, userId) => {
+    const { error } = await db.removeMemberFromGroup(groupId, userId);
+    if (!error) {
+      await get().loadGroupMembers(groupId);
+    }
+    return { error };
+  },
 }));
 
 // ── Bills Store ────────────────────────────────────────────────────────────────
 export const useBillStore = create((set, get) => ({
-  bills:    {},      // { groupId: [bills] }
+  bills:    {},
   loading:  false,
 
   setBills:    (groupId, bills) => set(s => ({ bills: { ...s.bills, [groupId]: bills } })),
@@ -81,7 +106,6 @@ export const useBillStore = create((set, get) => ({
     await get().loadBills(groupId, userId);
   },
 
-  // Compute balances for a user across given bills
   getBalances: (bills, userId) => {
     const bal = {};
     (bills || []).forEach(b => {
