@@ -26,7 +26,7 @@ export default function CreateGroupScreen({ navigation }) {
     if (!name.trim())       { setError('Please enter a group name!'); return; }
     if (members.length < 1) { setError('Select at least 1 member!'); return; }
     setLoading(true); setError('');
-    const { error: err } = await createGroup({ name: name.trim(), icon, created_by: profile.id }, [...members, profile.id]);
+    const { error: err } = await createGroup(name.trim(), icon, profile.id, members);
     if (err) { setError(err.message); setLoading(false); return; }
     setLoading(false);
     navigation.goBack();
