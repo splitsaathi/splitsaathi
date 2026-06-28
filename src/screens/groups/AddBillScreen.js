@@ -331,7 +331,7 @@ const s = StyleSheet.create({
   descIconBox: { width: 44, height: 44, borderRadius: 10, backgroundColor: L.surface, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   descIcon:    { fontSize: 18, color: L.textSub },
   descInput:   { flex: 1, fontSize: 16, color: L.text, borderBottomWidth: 1.5, borderBottomColor: L.primary, paddingBottom: 6 },
-  amountInput: { fontSize: 28, fontWeight: '300', color: L.textMuted },
+  amountInput: { fontSize: 28, fontWeight: '800', color: L.text },
 
   // Paid by / split
   splitRow:    { paddingHorizontal: 16, paddingVertical: 12 },
