@@ -7,7 +7,6 @@ import Avatar from '../../components/Avatar';
 import ReminderBadge from '../../components/ReminderBadge';
 import { signOut } from '../../services/auth';
 
-// ── Bar Chart ─────────────────────────────────────────────────────────────────
 function BarChart({ data }) {
   const maxVal = Math.max(...data.map(d => d.value), 1);
   return (
@@ -26,7 +25,6 @@ function BarChart({ data }) {
   );
 }
 
-// ── Horizontal Bar (Pie alternative) ─────────────────────────────────────────
 function HorizontalBreakdown({ data }) {
   return (
     <View style={{ gap:10 }}>
@@ -45,29 +43,16 @@ function HorizontalBreakdown({ data }) {
 }
 
 export default function DashboardScreen({ navigation }) {
-  const { profile }                           = useAuthStore();
-  const { groups, groupMembers, loadGroups }  = useGroupStore();
-  const { bills, loadBills, getBalances }                = useBillStore();
-  const { friends, loadFriends }              = useFriendStore();
-  const [refreshing, setRefreshing]           = useState(false);
-  const [chartType,  setChartType]            = useState('bar');
+  const { profile }                          = useAuthStore();
+  const { groups, groupMembers, loadGroups } = useGroupStore();
+  const { bills, loadBills, getBalances }    = useBillStore();
+  const { friends, loadFriends }             = useFriendStore();
+  const [refreshing, setRefreshing]          = useState(false);
+  const [chartType,  setChartType]           = useState('bar');
 
   useEffect(() => {
     if (profile?.id) { loadGroups(profile.id); loadFriends(profile.id); }
   }, [profile?.id]);
-
-  useEffect(() => {
-    if (groups.length > 0 && profile?.id) {
-      groups.forEach(g => loadBills(g.id, profile.id));
-    }
-  }, [profile?.id]);
-
-  // Load bills for all groups
-  useEffect(() => {
-    if (groups.length > 0 && profile?.id) {
-      groups.forEach(g => loadBills(g.id, profile.id));
-    }
-  }, [groups.length, profile?.id]);
 
   useEffect(() => {
     if (groups.length > 0 && profile?.id) {
@@ -78,8 +63,9 @@ export default function DashboardScreen({ navigation }) {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([loadGroups(profile.id), loadFriends(profile.id)]);
+    await Promise.all(groups.map(g => loadBills(g.id, profile.id)));
     setRefreshing(false);
-  }, [profile]);
+  }, [profile, groups]);
 
   const getName = useCallback((uid) => {
     if (uid === profile?.id) return 'You';
@@ -90,18 +76,15 @@ export default function DashboardScreen({ navigation }) {
     return friends.find(f => f.id === uid)?.name || 'User';
   }, [profile, groupMembers, friends]);
 
-  // ── All bills for this user ──────────────────────────────────────────────────
   const allMyBills = useMemo(() =>
     Object.values(bills).flat().filter(
       b => b.paid_by === profile?.id || (b.split_among||[]).includes(profile?.id)
     ), [bills, profile?.id]);
 
-  // ── Balance calculations ────────────────────────────────────────────────────
   const dashBal   = useMemo(() => getBalances(allMyBills, profile?.id), [allMyBills, profile?.id]);
   const totalOwed = Object.values(dashBal).filter(v => v > 0).reduce((a,b) => a+b, 0);
   const totalOwe  = Math.abs(Object.values(dashBal).filter(v => v < 0).reduce((a,b) => a+b, 0));
 
-  // ── Dynamic monthly spending (from live activities) ────────────────────────
   const thisMonthBills = useMemo(() => allMyBills.filter(b => {
     const d = new Date(b.date||b.created_at), now = new Date();
     return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
@@ -110,19 +93,17 @@ export default function DashboardScreen({ navigation }) {
   const totalMonthlySpending = thisMonthBills.reduce((s,b) =>
     s + (b.amount / Math.max((b.split_among||[1]).length, 1)), 0);
 
-  // Dynamic projected budget — 1.5x of total group cost, min 20000
   const totalGroupCost = Object.values(bills).flat().reduce((s,b) => s + (b.amount||0), 0);
   const projectedBudget = useMemo(() => {
     if (totalGroupCost > 0) return Math.max(20000, Math.ceil((totalGroupCost * 1.5) / 5000) * 5000);
     return 30000;
   }, [totalGroupCost]);
 
-  const monthlyBudget   = Math.max(projectedBudget, 50000);
-  const budgetPct       = Math.min(100, Math.round((totalMonthlySpending / monthlyBudget) * 100));
-  const utilizationPct  = projectedBudget > 0 ? Math.round((totalGroupCost / projectedBudget) * 100) : 0;
-  const overBudget      = budgetPct > 80;
+  const monthlyBudget  = Math.max(projectedBudget, 50000);
+  const budgetPct      = Math.min(100, Math.round((totalMonthlySpending / monthlyBudget) * 100));
+  const utilizationPct = projectedBudget > 0 ? Math.round((totalGroupCost / projectedBudget) * 100) : 0;
+  const overBudget     = budgetPct > 80;
 
-  // ── Dynamic category breakdown from real bills ─────────────────────────────
   const catTotals = useMemo(() => {
     const totals = { Stay:0, Travel:0, Food:0, Others:0 };
     allMyBills.forEach(b => {
@@ -144,7 +125,6 @@ export default function DashboardScreen({ navigation }) {
     { name:'Miscellaneous', label:'Other',  value: catTotals.Others, percentage: Math.round(catTotals.Others/totalBreakdown*100), color:'#f59e0b' },
   ].filter(d => d.value > 0), [catTotals, totalBreakdown]);
 
-  // Fallback if no categorized data yet
   const displayChart = chartData.length > 0 ? chartData : [
     { name:'No Data Yet', label:'Add bills', value:1, percentage:100, color: COLORS.borderLight },
   ];
@@ -153,9 +133,25 @@ export default function DashboardScreen({ navigation }) {
   const handleNudge = (friendName) => Alert.alert('🔔 Nudge Sent!', `Reminder sent to ${friendName} to settle up!`);
   const goToTab = (tabName) => navigation.getParent()?.navigate(tabName);
 
+  const handleSettle = (uid, amt) => {
+    if (amt < 0) {
+      // I owe them — go settle
+      Alert.alert(
+        '✓ Settle Up',
+        `You owe ₹${Math.abs(amt).toFixed(2)} to ${getName(uid)}. Go to Groups to settle.`,
+        [
+          { text: 'Go to Groups', onPress: () => goToTab('Groups') },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+    } else {
+      // They owe me — send reminder
+      handleNudge(getName(uid));
+    }
+  };
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
           <Avatar name={profile?.name||'?'} size={40} uri={profile?.avatar_url} />
@@ -194,7 +190,7 @@ export default function DashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Friend Balances with Nudge */}
+        {/* Friend Balances with Settle */}
         {Object.keys(dashBal).length > 0 && (
           <View style={s.section}>
             <View style={s.sectionHeader}>
@@ -211,26 +207,37 @@ export default function DashboardScreen({ navigation }) {
                   <Text style={s.friendMeta}>Recent activity</Text>
                 </View>
                 <View style={{ alignItems:'flex-end' }}>
-                  <Text style={[s.friendAmt, { color: amt>0? COLORS.primary: COLORS.owe }]}>₹{Math.abs(amt).toFixed(2)}</Text>
-                  <Text style={[s.friendStatus, { color: amt>0? COLORS.primary: COLORS.owe }]}>{amt>0?'owes you':'you owe'}</Text>
-                  {amt > 0 && (
-                    <View style={{ flexDirection:'row', gap:8, marginTop:4 }}>
-                      <TouchableOpacity onPress={() => handleNudge(getName(uid))}>
-                        <Text style={s.nudgeText}>Remind</Text>
+                  <Text style={[s.friendAmt, { color: amt>0? COLORS.primary: COLORS.owe }]}>
+                    ₹{Math.abs(amt).toFixed(2)}
+                  </Text>
+                  <Text style={[s.friendStatus, { color: amt>0? COLORS.primary: COLORS.owe }]}>
+                    {amt>0 ? 'owes you' : 'you owe'}
+                  </Text>
+                  <View style={{ flexDirection:'row', gap:6, marginTop:6 }}>
+                    {amt > 0 && (
+                      <TouchableOpacity
+                        style={s.remindBtn}
+                        onPress={() => handleNudge(getName(uid))}
+                      >
+                        <Text style={s.remindBtnText}>🔔 Remind</Text>
                       </TouchableOpacity>
-                      <Text style={{ color: COLORS.borderLight }}>•</Text>
-                      <TouchableOpacity onPress={() => handleNudge(getName(uid))}>
-                        <Text style={s.nudgeText}>🫷 Nudge</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                    )}
+                    <TouchableOpacity
+                      style={[s.settleSmBtn, { backgroundColor: amt < 0 ? COLORS.primary : 'transparent', borderColor: COLORS.primary }]}
+                      onPress={() => handleSettle(uid, amt)}
+                    >
+                      <Text style={[s.settleSmBtnText, { color: amt < 0 ? '#fff' : COLORS.primary }]}>
+                        {amt < 0 ? '✓ Settle' : '💸 Request'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
           </View>
         )}
 
-        {/* Explore Trips — above Monthly Spending */}
+        {/* Explore Trips */}
         <View style={s.section}>
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>🔍 Explore Trips</Text>
@@ -240,14 +247,14 @@ export default function DashboardScreen({ navigation }) {
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {[
-              { title:'Jim Corbett Safari', emoji:'🐯', cost:'₹12,500', type:'Wildlife',   dist:'245 km' },
-              { title:'Rishikesh Rafting',  emoji:'🚣', cost:'₹4,200',  type:'Adventure',  dist:'260 km' },
-              { title:'Jaipur Heritage',    emoji:'🏰', cost:'₹8,900',  type:'Heritage',   dist:'270 km' },
-              { title:'Goa Beaches',        emoji:'🏖️', cost:'₹7,800',  type:'Beaches',    dist:'1900 km' },
+              { title:'Jim Corbett Safari', emoji:'🐯', cost:'₹12,500', type:'Wildlife',    dist:'245 km' },
+              { title:'Rishikesh Rafting',  emoji:'🚣', cost:'₹4,200',  type:'Adventure',   dist:'260 km' },
+              { title:'Jaipur Heritage',    emoji:'🏰', cost:'₹8,900',  type:'Heritage',    dist:'270 km' },
+              { title:'Goa Beaches',        emoji:'🏖️', cost:'₹7,800',  type:'Beaches',     dist:'1900 km' },
               { title:'Manali Snow Peaks',  emoji:'🏔️', cost:'₹9,800',  type:'Hill Station',dist:'540 km' },
-              { title:'Varanasi Spiritual', emoji:'🕌', cost:'₹3,500',  type:'Spiritual',  dist:'320 km' },
-              { title:'Coorg Coffee Trail', emoji:'☕', cost:'₹7,200',  type:'Nature',     dist:'2100 km' },
-              { title:'Kaziranga Safari',   emoji:'🦏', cost:'₹15,000', type:'Wildlife',   dist:'1900 km' },
+              { title:'Varanasi Spiritual', emoji:'🕌', cost:'₹3,500',  type:'Spiritual',   dist:'320 km' },
+              { title:'Coorg Coffee Trail', emoji:'☕', cost:'₹7,200',  type:'Nature',      dist:'2100 km' },
+              { title:'Kaziranga Safari',   emoji:'🦏', cost:'₹15,000', type:'Wildlife',    dist:'1900 km' },
             ].map((t,i) => (
               <TouchableOpacity key={i} style={s.exploreCard}
                 onPress={() => navigation.navigate('TripDiscovery')} activeOpacity={0.8}>
@@ -263,7 +270,7 @@ export default function DashboardScreen({ navigation }) {
           </ScrollView>
         </View>
 
-        {/* Dynamic Monthly Spending + Budget Warning */}
+        {/* Monthly Spending */}
         <View style={[s.budgetCard, overBudget && { borderLeftColor: COLORS.owe }]}>
           <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
             <Text style={s.budgetLabel}>MONTHLY SPENDING</Text>
@@ -291,7 +298,7 @@ export default function DashboardScreen({ navigation }) {
           )}
         </View>
 
-        {/* Live Spending Analytics */}
+        {/* Spending Analytics */}
         <View style={s.section}>
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>Spending Breakdown</Text>
@@ -314,8 +321,6 @@ export default function DashboardScreen({ navigation }) {
             ) : (
               <HorizontalBreakdown data={displayChart} />
             )}
-
-            {/* Category Legend Grid */}
             {allMyBills.length > 0 && (
               <View style={s.legendGrid}>
                 {displayChart.map((item, i) => (
@@ -350,7 +355,7 @@ export default function DashboardScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Active Groups with progress */}
+        {/* Active Groups */}
         {groups.length > 0 && (
           <View style={s.section}>
             <View style={s.sectionHeader}>
@@ -363,11 +368,8 @@ export default function DashboardScreen({ navigation }) {
               const gb    = bills[g.id]||[];
               const total = gb.reduce((s,b) => s+b.amount, 0);
               const settledPct = gb.length ? Math.round(gb.filter(b=>(b.settled||[]).length>0).length/gb.length*100) : 0;
-
-              // Per-person cost
               const members = groupMembers[g.id]||[];
               const perPerson = members.length > 0 && total > 0 ? Math.round(total/members.length) : 0;
-
               return (
                 <TouchableOpacity key={g.id} style={s.groupCard} onPress={() => goToTab('Groups')}>
                   <View style={[s.groupAccent, { backgroundColor: COLORS.primary }]} />
@@ -456,12 +458,9 @@ const s = StyleSheet.create({
   headerLeft: { flexDirection:'row', alignItems:'center', flex:1 },
   greeting:   { color: COLORS.text, fontWeight:'700', fontSize:15 },
   email:      { color: COLORS.textMuted, fontSize:11, marginTop:1 },
-  premiumBtn: { backgroundColor: COLORS.goldLight, borderRadius: RADIUS.sm, paddingHorizontal:10, paddingVertical:6 },
-  premiumBtnText:{ color:'#78350f', fontSize:12, fontWeight:'700' },
   logoutBtn:  { borderWidth:1, borderColor: COLORS.border, borderRadius: RADIUS.sm, paddingHorizontal:10, paddingVertical:6 },
   logoutText: { color: COLORS.textSub, fontSize:12, fontWeight:'600' },
   scroll:     { paddingBottom:100 },
-
   balanceGrid: { flexDirection:'row', gap:12, margin: SPACING.md },
   balCard:     { flex:1, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.md, borderTopWidth:4, borderTopColor: COLORS.primary, borderWidth:1, borderColor: COLORS.borderLight, ...SHADOW.sm },
   balLabel:    { color: COLORS.textMuted, fontSize:10, fontWeight:'700', letterSpacing:0.8, marginBottom:4 },
@@ -469,19 +468,20 @@ const s = StyleSheet.create({
   balSub:      { color: COLORS.textMuted, fontSize:11, marginBottom:12 },
   settleBtn:   { backgroundColor: COLORS.primary, borderRadius: RADIUS.sm, paddingVertical:8, alignItems:'center' },
   settleBtnText:{ color:'#fff', fontWeight:'700', fontSize:11, letterSpacing:0.5 },
-
   section:       { marginTop: SPACING.lg, marginHorizontal: SPACING.md },
   sectionHeader: { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:12 },
   sectionTitle:  { color: COLORS.text, fontSize:16, fontWeight:'700' },
   sectionLink:   { color: COLORS.primary, fontSize:11, fontWeight:'700', letterSpacing:0.5 },
-
   friendRow:   { flexDirection:'row', alignItems:'center', paddingVertical:12, borderBottomWidth:1, borderBottomColor: COLORS.borderLight },
   friendName:  { color: COLORS.text, fontWeight:'600', fontSize:14 },
   friendMeta:  { color: COLORS.textMuted, fontSize:12, marginTop:1 },
   friendAmt:   { fontWeight:'700', fontSize:14 },
   friendStatus:{ fontSize:11, fontWeight:'600', marginTop:1 },
   nudgeText:   { color: COLORS.primary, fontSize:11, fontWeight:'700' },
-
+  remindBtn:   { borderWidth:1, borderColor: COLORS.border, borderRadius:8, paddingHorizontal:8, paddingVertical:4 },
+  remindBtnText: { color: COLORS.textSub, fontSize:11, fontWeight:'600' },
+  settleSmBtn:   { borderWidth:1, borderRadius:8, paddingHorizontal:10, paddingVertical:4 },
+  settleSmBtnText: { fontSize:11, fontWeight:'700' },
   budgetCard:   { marginHorizontal: SPACING.md, marginTop: SPACING.lg, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.md, borderLeftWidth:4, borderLeftColor: COLORS.primary, borderWidth:1, borderColor: COLORS.borderLight },
   budgetLabel:  { color: COLORS.textMuted, fontSize:11, fontWeight:'700', letterSpacing:0.8 },
   budgetAmt:    { color: COLORS.primary, fontSize:24, fontWeight:'700', marginVertical:6 },
@@ -490,24 +490,19 @@ const s = StyleSheet.create({
   budgetSub:    { color: COLORS.textMuted, fontSize:12 },
   warnBadge:    { backgroundColor:'#fef2f2', borderRadius: RADIUS.sm, paddingHorizontal:8, paddingVertical:3 },
   warnText:     { color: COLORS.owe, fontSize:11, fontWeight:'700' },
-
   chartCard:    { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.md, borderWidth:1, borderColor: COLORS.borderLight },
   chartToggle:  { flexDirection:'row', backgroundColor: COLORS.surfaceHigh, borderRadius: RADIUS.md, padding:3, gap:3 },
   chartBtn:     { paddingHorizontal:10, paddingVertical:6, borderRadius: RADIUS.sm },
   chartBtnActive:{ backgroundColor: COLORS.primary },
   chartBtnText: { color: COLORS.textMuted, fontSize:12, fontWeight:'600' },
-
-  // Category legend grid (like web app)
   legendGrid:   { flexDirection:'row', flexWrap:'wrap', gap:0, marginTop: SPACING.md, backgroundColor: COLORS.surfaceHigh, borderRadius: RADIUS.lg, padding: SPACING.sm, borderWidth:1, borderColor: COLORS.borderLight },
   legendItem:   { width:'50%', padding: SPACING.sm },
   legendName:   { color: COLORS.textMuted, fontSize:11, fontWeight:'700', flex:1 },
   legendAmt:    { color: COLORS.text, fontWeight:'800', fontSize:14, marginTop:2 },
   legendPct:    { color: COLORS.textMuted, fontSize:10, fontWeight:'500', marginTop:1 },
-
   quickAction: { flexDirection:'row', alignItems:'center', gap:14, paddingVertical:14, borderBottomWidth:1, borderBottomColor: COLORS.borderLight },
   quickIcon:   { fontSize:20, width:32, textAlign:'center' },
   quickLabel:  { color: COLORS.text, fontSize:15, fontWeight:'500', flex:1 },
-
   groupCard:      { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, marginBottom:12, flexDirection:'row', borderWidth:1, borderColor: COLORS.borderLight, overflow:'hidden', ...SHADOW.sm },
   groupAccent:    { width:5 },
   groupName:      { color: COLORS.text, fontWeight:'700', fontSize:15 },
@@ -516,26 +511,21 @@ const s = StyleSheet.create({
   ongoingText:    { color: COLORS.warning, fontSize:9, fontWeight:'700', letterSpacing:0.5 },
   groupProgressBg:  { height:4, backgroundColor: COLORS.surfaceHigh, borderRadius:2 },
   groupProgressFill:{ height:4, backgroundColor: COLORS.primary, borderRadius:2 },
-
   tripCard:     { flexDirection:'row', alignItems:'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.md, marginBottom:10, borderWidth:1, borderColor: COLORS.borderLight, ...SHADOW.sm },
   tripTitle:    { color: COLORS.text, fontWeight:'700', fontSize:14 },
   tripDesc:     { color: COLORS.textMuted, fontSize:12, marginTop:1 },
   tripCost:     { color: COLORS.primary, fontWeight:'700', fontSize:12, marginTop:4 },
   tripTypeBadge:{ backgroundColor: COLORS.primary+'15', borderRadius: RADIUS.sm, paddingHorizontal:6, paddingVertical:2 },
   tripTypeText: { color: COLORS.primary, fontSize:9, fontWeight:'700' },
-
-  reminderRow:   { flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingVertical:12, borderBottomWidth:1, borderBottomColor: COLORS.borderLight },
-
-  // Explore trips horizontal cards
-  exploreCard:       { width:130, backgroundColor: COLORS.surface, borderRadius: RADIUS.xl, padding:14, marginRight:12, borderWidth:1, borderColor: COLORS.borderLight, ...SHADOW.sm },
-  exploreEmoji:      { fontSize:32, marginBottom:8 },
-  exploreTitle:      { color: COLORS.text, fontWeight:'700', fontSize:12, marginBottom:6, lineHeight:16 },
-  exploreBadge:      { backgroundColor: COLORS.primary+'15', borderRadius: RADIUS.sm, paddingHorizontal:6, paddingVertical:3, alignSelf:'flex-start', marginBottom:4 },
-  exploreBadgeText:  { color: COLORS.primary, fontSize:9, fontWeight:'700' },
-  exploreDist:       { color: COLORS.textMuted, fontSize:10, marginBottom:2 },
-  exploreCost:       { color: COLORS.primary, fontWeight:'800', fontSize:13 },
-  reminderTitle: { color: COLORS.text, fontSize:14, fontWeight:'600' },
+  reminderRow:  { flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingVertical:12, borderBottomWidth:1, borderBottomColor: COLORS.borderLight },
+  reminderTitle:{ color: COLORS.text, fontSize:14, fontWeight:'600' },
+  exploreCard:      { width:130, backgroundColor: COLORS.surface, borderRadius: RADIUS.xl, padding:14, marginRight:12, borderWidth:1, borderColor: COLORS.borderLight, ...SHADOW.sm },
+  exploreEmoji:     { fontSize:32, marginBottom:8 },
+  exploreTitle:     { color: COLORS.text, fontWeight:'700', fontSize:12, marginBottom:6, lineHeight:16 },
+  exploreBadge:     { backgroundColor: COLORS.primary+'15', borderRadius: RADIUS.sm, paddingHorizontal:6, paddingVertical:3, alignSelf:'flex-start', marginBottom:4 },
+  exploreBadgeText: { color: COLORS.primary, fontSize:9, fontWeight:'700' },
+  exploreDist:      { color: COLORS.textMuted, fontSize:10, marginBottom:2 },
+  exploreCost:      { color: COLORS.primary, fontWeight:'800', fontSize:13 },
+  premiumBtn:    { backgroundColor: COLORS.goldLight, borderRadius: RADIUS.sm, paddingHorizontal:10, paddingVertical:6 },
+  premiumBtnText:{ color:'#78350f', fontSize:12, fontWeight:'700' },
 });
-
-
-
