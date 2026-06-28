@@ -106,7 +106,7 @@ export default function EditProfileScreen({ navigation }) {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Cancel</Text>
+          <Text style={styles.backText}>‹ Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Profile</Text>
         <TouchableOpacity onPress={handleSave} disabled={loading || uploading}>
