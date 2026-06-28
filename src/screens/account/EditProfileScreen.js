@@ -51,6 +51,21 @@ export default function EditProfileScreen({ navigation }) {
     img.src = uri;
   });
 
+  const [savedMsg, setSavedMsg] = useState(false);
+
+  // ── Delete old avatar from storage ───────────────────────────────────────
+  const deleteOldAvatar = async (oldUrl) => {
+    if (!oldUrl || !oldUrl.includes('supabase')) return;
+    try {
+      // URL se path nikalo
+      const parts = oldUrl.split('/avatars/');
+      if (parts[1]) {
+        await supabase.storage.from('avatars').remove([parts[1].split('?')[0]]);
+        console.log('Old avatar deleted');
+      }
+    } catch (e) { console.log('Delete old avatar error:', e); }
+  };
+
   const pickImage = async () => {
     try {
       if (Platform.OS !== 'web') {
@@ -72,7 +87,11 @@ export default function EditProfileScreen({ navigation }) {
 
       setUploading(true);
       const uri  = result.assets[0].uri;
-      const path = `avatars/${profile.id}_${Date.now()}.jpg`;
+      // Fixed path — same file, purana overwrite hoga
+      const path = `avatars/${profile.id}.jpg`;
+
+      // Purana avatar delete karo
+      await deleteOldAvatar(avatar);
 
       // Compress karo
       const { blob, isNative } = await compressImage(uri);
@@ -80,13 +99,12 @@ export default function EditProfileScreen({ navigation }) {
       let uploadError;
 
       if (Platform.OS === 'web' && blob) {
-        console.log('Compressed size:', blob.size, 'bytes');
+        console.log('Compressed size:', blob.size, 'bytes (~' + Math.round(blob.size/1024) + 'kb)');
         const { error } = await supabase.storage
           .from('avatars')
           .upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
         uploadError = error;
       } else {
-        // Native
         const response    = await fetch(uri);
         const arrayBuffer = await response.arrayBuffer();
         const { error } = await supabase.storage
@@ -102,9 +120,9 @@ export default function EditProfileScreen({ navigation }) {
         return;
       }
 
+      // Cache bust karo taaki nayi photo load ho
       const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-      setAvatar(data.publicUrl);
-      Alert.alert('✅ Photo Upload!', 'Profile photo update ho gaya. Save karo!');
+      setAvatar(data.publicUrl + '?t=' + Date.now());
 
     } catch (e) {
       console.error('pickImage error:', e);
@@ -126,9 +144,12 @@ export default function EditProfileScreen({ navigation }) {
     if (error) { Alert.alert('Error', error.message); setLoading(false); return; }
     setProfile({ ...profile, ...updates });
     setLoading(false);
-    Alert.alert('✅ Saved!', 'Your profile has been updated', [
-      { text: 'OK', onPress: () => navigation.goBack() }
-    ]);
+    // Screen pe success message dikhao
+    setSavedMsg(true);
+    setTimeout(() => {
+      setSavedMsg(false);
+      navigation.goBack();
+    }, 1500);
   };
 
   return (
@@ -145,6 +166,13 @@ export default function EditProfileScreen({ navigation }) {
           }
         </TouchableOpacity>
       </View>
+
+      {/* ✅ Success Message */}
+      {savedMsg && (
+        <View style={styles.successBanner}>
+          <Text style={styles.successText}>✅ Profile Successfully Updated!</Text>
+        </View>
+      )}
 
       <View style={styles.avatarSection}>
         <TouchableOpacity onPress={pickImage} disabled={uploading}>
@@ -218,4 +246,6 @@ const styles = StyleSheet.create({
   phoneRow:    { flexDirection: 'row', gap: 8, marginBottom: SPACING.md },
   countryCode: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: 14, justifyContent: 'center' },
   hint:        { color: COLORS.textMuted, fontSize: 12, marginTop: -8, lineHeight: 18 },
+  successBanner: { backgroundColor: '#10b981', padding: 14, alignItems: 'center' },
+  successText:   { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
