@@ -1,12 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  TextInput, ActivityIndicator, Image, Alert, FlatList,
+  TextInput, ActivityIndicator, Image, Alert, FlatList, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { COLORS, SPACING, RADIUS, SHADOW } from '../../theme';
-import { useAuthStore } from '../../store';
+import { useAuthStore, useGroupStore, useFriendStore } from '../../store';
 
 // ─── Haversine distance ───────────────────────────────────────────────────────
 function haversine(lat1,lon1,lat2,lon2){
@@ -115,8 +115,54 @@ const FILTERS  = ['All','Wildlife','Adventure','Heritage','Beaches','Hill Statio
 const PRICE_F  = ['All','Budget Friendly (Under ₹7k)','Premium (Above ₹7k)'];
 const SORT_OPT = [['popular','⭐ Popular'],['distance','📍 Nearest'],['price_asc','💰 Low Price'],['price_desc','💎 Premium']];
 
+// ── Friend picker for Activate & Sync ────────────────────────────────────────
+function SyncFriendPicker({ friends, trip, activating, onActivate, onCancel }) {
+  const [selected, setSelected] = useState([]);
+  const toggle = (id) => setSelected(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  return (
+    <>
+      <ScrollView style={{ maxHeight: 220, marginBottom:16 }}>
+        {friends.map(f => {
+          const isSelected = selected.includes(f.id);
+          return (
+            <TouchableOpacity key={f.id}
+              style={{ flexDirection:'row', alignItems:'center', paddingVertical:10, borderBottomWidth:1, borderBottomColor: COLORS.borderLight, backgroundColor: isSelected ? COLORS.primary+'10' : 'transparent', paddingHorizontal:8, borderRadius:8 }}
+              onPress={() => toggle(f.id)}>
+              <View style={{ width:36, height:36, borderRadius:18, backgroundColor: COLORS.primary, alignItems:'center', justifyContent:'center', marginRight:12 }}>
+                <Text style={{ color:'#fff', fontWeight:'700', fontSize:14 }}>{f.name?.[0]?.toUpperCase()}</Text>
+              </View>
+              <Text style={{ flex:1, color: COLORS.text, fontSize:14, fontWeight: isSelected ? '700' : '400' }}>{f.name}</Text>
+              <View style={{ width:24, height:24, borderRadius:12, borderWidth:2, borderColor: isSelected ? COLORS.primary : COLORS.border, backgroundColor: isSelected ? COLORS.primary : 'transparent', alignItems:'center', justifyContent:'center' }}>
+                {isSelected && <Text style={{ color:'#fff', fontSize:12, fontWeight:'700' }}>✓</Text>}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+      <Text style={{ color: COLORS.textMuted, fontSize:11, textAlign:'center', marginBottom:14 }}>
+        {selected.length} friend{selected.length !== 1 ? 's' : ''} selected · ₹{trip.startsFrom.toLocaleString('en-IN')}/person estimated
+      </Text>
+      <TouchableOpacity
+        style={{ backgroundColor: COLORS.primary, borderRadius:14, padding:16, alignItems:'center', marginBottom:10, opacity: activating ? 0.6 : 1 }}
+        onPress={() => onActivate(trip, friends.filter(f => selected.includes(f.id)))}
+        disabled={activating}
+      >
+        {activating
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={{ color:'#fff', fontWeight:'800', fontSize:15 }}>🚀 Group Banao & Sync Karo</Text>
+        }
+      </TouchableOpacity>
+      <TouchableOpacity style={{ borderWidth:1, borderColor: COLORS.border, borderRadius:14, padding:14, alignItems:'center' }} onPress={onCancel}>
+        <Text style={{ color: COLORS.textSub, fontWeight:'600' }}>Cancel</Text>
+      </TouchableOpacity>
+    </>
+  );
+}
+
 export default function TripDiscoveryScreen({ navigation }) {
   const { profile } = useAuthStore();
+  const { createGroup } = useGroupStore();
+  const { friends, loadFriends } = useFriendStore();
   const [search,      setSearch]      = useState('');
   const [filter,      setFilter]      = useState('All');
   const [priceFilter, setPriceFilter] = useState('All');
@@ -126,6 +172,10 @@ export default function TripDiscoveryScreen({ navigation }) {
   const [cityName,    setCityName]    = useState('');
   const [expanded,    setExpanded]    = useState({});
   const [showFilters, setShowFilters] = useState(false);
+  const [activating,  setActivating]  = useState(false);
+  const [syncModal,   setSyncModal]   = useState(null); // trip object
+
+  useEffect(() => { if (profile?.id) loadFriends(profile.id); }, [profile?.id]);
 
   const handleGetLocation = async () => {
     setLocLoading(true);
@@ -163,7 +213,30 @@ export default function TripDiscoveryScreen({ navigation }) {
     );
   };
 
-  const tripsWithDist = useMemo(() =>
+  // ── Activate & Sync — auto create group ───────────────────────────────────
+  const handleActivateSync = async (trip, selectedFriends) => {
+    setActivating(true);
+    try {
+      const groupName = trip.title;
+      const memberIds = selectedFriends.map(f => f.id);
+      const { error } = await createGroup(groupName, '✈️', profile.id, memberIds);
+      if (error) {
+        Alert.alert('Error', error.message || 'Group create nahi ho saka');
+        setActivating(false);
+        return;
+      }
+      setSyncModal(null);
+      setActivating(false);
+      Alert.alert(
+        '✅ Group Created!',
+        `"${groupName}" group ban gaya!\nAb Groups tab mein jaake expenses add karo.`,
+        [{ text: 'Groups Tab Kholein →', onPress: () => navigation.getParent()?.navigate('Groups') }, { text: 'OK' }]
+      );
+    } catch (e) {
+      Alert.alert('Error', 'Kuch problem aayi, dobara try karo');
+      setActivating(false);
+    }
+  };
     ALL_TRIPS.map(t => ({
       ...t,
       dist: userCoords ? haversine(userCoords.lat, userCoords.lon, t.lat, t.lon) : t.baseDist || 500,
@@ -269,11 +342,7 @@ export default function TripDiscoveryScreen({ navigation }) {
             <Text style={s.createGroupBtnText}>👥 Create Group & Split Expenses</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.launchBtn}
-            onPress={() => Alert.alert('✈️ Activate Trip',
-              `Launch "${trip.title}" as your active split group?\nEstimated: ₹${trip.startsFrom.toLocaleString('en-IN')}/person`,
-              [{ text:'Cancel', style:'cancel' },{ text:'Activate!', onPress: () => navigation.navigate('TripNavigation', { trip }) }]
-            )}>
+          <TouchableOpacity style={s.launchBtn} onPress={() => setSyncModal(trip)}>
             <Text style={s.launchBtnText}>🚀 Activate & Sync Split Group</Text>
           </TouchableOpacity>
         </View>
@@ -381,6 +450,48 @@ export default function TripDiscoveryScreen({ navigation }) {
           </View>
         }
       />
+      {/* ── Activate & Sync Modal ── */}
+      <Modal visible={!!syncModal} animationType="slide" transparent onRequestClose={() => setSyncModal(null)}>
+        <View style={{ flex:1, backgroundColor:'rgba(0,0,0,0.6)', justifyContent:'flex-end' }}>
+          <View style={{ backgroundColor: COLORS.surface, borderTopLeftRadius:24, borderTopRightRadius:24, padding:24, paddingBottom:40 }}>
+            <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+              <Text style={{ color: COLORS.text, fontWeight:'800', fontSize:18 }}>🚀 Activate Trip Group</Text>
+              <TouchableOpacity onPress={() => setSyncModal(null)}>
+                <Text style={{ fontSize:22, color: COLORS.textMuted }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {syncModal && (
+              <>
+                <View style={{ backgroundColor: COLORS.surfaceHigh, borderRadius:12, padding:14, marginBottom:16 }}>
+                  <Text style={{ color: COLORS.text, fontWeight:'700', fontSize:16 }}>{syncModal.title}</Text>
+                  <Text style={{ color: COLORS.textMuted, fontSize:12, marginTop:4 }}>{syncModal.state} · ₹{syncModal.startsFrom.toLocaleString('en-IN')}/person estimated</Text>
+                </View>
+
+                <Text style={{ color: COLORS.textMuted, fontSize:12, fontWeight:'700', marginBottom:10 }}>SAATH JAANE WALE FRIENDS SELECT KARO</Text>
+
+                {friends.length === 0 ? (
+                  <View style={{ alignItems:'center', paddingVertical:16 }}>
+                    <Text style={{ color: COLORS.textMuted, fontSize:13, textAlign:'center', marginBottom:12 }}>Pehle friends add karo Groups mein jaane se pehle</Text>
+                    <TouchableOpacity style={{ borderWidth:1, borderColor: COLORS.primary, borderRadius:8, paddingHorizontal:16, paddingVertical:8 }}
+                      onPress={() => { setSyncModal(null); navigation.getParent()?.navigate('Friends'); }}>
+                      <Text style={{ color: COLORS.primary, fontWeight:'700' }}>+ Friends Add Karo</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <SyncFriendPicker
+                    friends={friends}
+                    trip={syncModal}
+                    activating={activating}
+                    onActivate={handleActivateSync}
+                    onCancel={() => setSyncModal(null)}
+                  />
+                )}
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
