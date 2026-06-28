@@ -144,12 +144,11 @@ export default function EditProfileScreen({ navigation }) {
     if (error) { Alert.alert('Error', error.message); setLoading(false); return; }
     setProfile({ ...profile, ...updates });
     setLoading(false);
-    // Screen pe success message dikhao
     setSavedMsg(true);
-    setTimeout(() => {
-      setSavedMsg(false);
-      navigation.goBack();
-    }, 1500);
+    // Web pe Alert bhi show karo — guaranteed dikhega
+    Alert.alert('✅ Successfully Updated!', 'Profile save ho gaya!', [
+      { text: 'OK', onPress: () => { setSavedMsg(false); navigation.goBack(); } }
+    ]);
   };
 
   return (
