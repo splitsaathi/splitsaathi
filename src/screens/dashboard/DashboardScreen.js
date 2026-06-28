@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Modal, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore, useGroupStore, useBillStore, useFriendStore } from '../../store';
 import { COLORS, SPACING, RADIUS, SHADOW } from '../../theme';
@@ -47,8 +47,9 @@ export default function DashboardScreen({ navigation }) {
   const { groups, groupMembers, loadGroups } = useGroupStore();
   const { bills, loadBills, getBalances }    = useBillStore();
   const { friends, loadFriends }             = useFriendStore();
-  const [refreshing, setRefreshing]          = useState(false);
-  const [chartType,  setChartType]           = useState('bar');
+  const [refreshing,   setRefreshing]         = useState(false);
+  const [chartType,    setChartType]          = useState('bar');
+  const [settleModal,  setSettleModal]        = useState(null); // { name, upiId, amount }
 
   useEffect(() => {
     if (profile?.id) { loadGroups(profile.id); loadFriends(profile.id); }
@@ -133,19 +134,31 @@ export default function DashboardScreen({ navigation }) {
   const handleNudge = (friendName) => Alert.alert('🔔 Nudge Sent!', `Reminder sent to ${friendName} to settle up!`);
   const goToTab = (tabName) => navigation.getParent()?.navigate(tabName);
 
-  const handleSettle = (uid, amt) => {
+  const handleSettle = async (uid, amt) => {
     if (amt < 0) {
-      // I owe them — go settle
-      Alert.alert(
-        '✓ Settle Up',
-        `You owe ₹${Math.abs(amt).toFixed(2)} to ${getName(uid)}. Go to Groups to settle.`,
-        [
-          { text: 'Go to Groups', onPress: () => goToTab('Groups') },
-          { text: 'Cancel', style: 'cancel' }
-        ]
-      );
+      // Fetch friend's UPI ID from profiles
+      try {
+        const { data } = await require('../../services/database').getProfile(uid);
+        const upiId = data?.upi_id;
+        const friendName = getName(uid);
+        const amount = Math.abs(amt);
+
+        if (upiId) {
+          setSettleModal({ name: friendName, upiId, amount, uid });
+        } else {
+          Alert.alert(
+            '✓ Settle Up',
+            `${friendName} ne UPI ID set nahi ki hai.\n\nYou owe ₹${amount.toFixed(2)} to ${friendName}.`,
+            [
+              { text: 'Go to Groups', onPress: () => goToTab('Groups') },
+              { text: 'Cancel', style: 'cancel' }
+            ]
+          );
+        }
+      } catch (e) {
+        goToTab('Groups');
+      }
     } else {
-      // They owe me — send reminder
       handleNudge(getName(uid));
     }
   };
@@ -448,6 +461,75 @@ export default function DashboardScreen({ navigation }) {
         )}
         <View style={{ height:100 }} />
       </ScrollView>
+
+      {/* ── UPI QR Settle Modal ── */}
+      <Modal visible={!!settleModal} animationType="slide" transparent onRequestClose={() => setSettleModal(null)}>
+        <View style={{ flex:1, backgroundColor:'rgba(0,0,0,0.6)', justifyContent:'flex-end' }}>
+          <View style={{ backgroundColor: COLORS.surface, borderTopLeftRadius:24, borderTopRightRadius:24, padding:24, paddingBottom:40 }}>
+            {/* Header */}
+            <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+              <Text style={{ color: COLORS.text, fontWeight:'800', fontSize:18 }}>✓ Settle Up</Text>
+              <TouchableOpacity onPress={() => setSettleModal(null)}>
+                <Text style={{ fontSize:22, color: COLORS.textMuted }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {settleModal && (
+              <>
+                {/* Amount */}
+                <View style={{ alignItems:'center', marginBottom:20 }}>
+                  <Text style={{ color: COLORS.textMuted, fontSize:13 }}>Pay to</Text>
+                  <Text style={{ color: COLORS.text, fontWeight:'800', fontSize:20, marginTop:4 }}>{settleModal.name}</Text>
+                  <Text style={{ color: COLORS.primary, fontWeight:'900', fontSize:32, marginTop:8 }}>
+                    ₹{settleModal.amount.toFixed(2)}
+                  </Text>
+                  <Text style={{ color: COLORS.textMuted, fontSize:12, marginTop:4 }}>UPI: {settleModal.upiId}</Text>
+                </View>
+
+                {/* QR Code */}
+                <View style={{ alignItems:'center', marginBottom:20 }}>
+                  <View style={{ backgroundColor:'#fff', padding:12, borderRadius:16, borderWidth:1, borderColor: COLORS.borderLight }}>
+                    <Image
+                      source={{
+                        uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${settleModal.upiId}&pn=${settleModal.name}&am=${settleModal.amount.toFixed(2)}&cu=INR&tn=SplitSaathi`)}`
+                      }}
+                      style={{ width:200, height:200 }}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <Text style={{ color: COLORS.textMuted, fontSize:12, marginTop:12, textAlign:'center' }}>
+                    Kisi bhi UPI app se scan karo{'\n'}(GPay, PhonePe, Paytm, etc.)
+                  </Text>
+                </View>
+
+                {/* UPI Deep Link Button */}
+                <TouchableOpacity
+                  style={{ backgroundColor: '#10b981', borderRadius:14, padding:16, alignItems:'center', marginBottom:12 }}
+                  onPress={() => {
+                    const upiUrl = `upi://pay?pa=${settleModal.upiId}&pn=${settleModal.name}&am=${settleModal.amount.toFixed(2)}&cu=INR&tn=SplitSaathi`;
+                    if (Platform.OS === 'web') {
+                      window.open(upiUrl, '_blank');
+                    } else {
+                      require('react-native').Linking.openURL(upiUrl).catch(() => {
+                        Alert.alert('UPI App nahi mili', 'GPay, PhonePe ya Paytm install karo');
+                      });
+                    }
+                  }}
+                >
+                  <Text style={{ color:'#fff', fontWeight:'800', fontSize:16 }}>💳 Open UPI App</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ borderWidth:1, borderColor: COLORS.border, borderRadius:14, padding:14, alignItems:'center' }}
+                  onPress={() => setSettleModal(null)}
+                >
+                  <Text style={{ color: COLORS.textSub, fontWeight:'600' }}>Close</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -529,3 +611,5 @@ const s = StyleSheet.create({
   premiumBtn:    { backgroundColor: COLORS.goldLight, borderRadius: RADIUS.sm, paddingHorizontal:10, paddingVertical:6 },
   premiumBtnText:{ color:'#78350f', fontSize:12, fontWeight:'700' },
 });
+
+// SETTLEMENT QR MODAL COMPONENT - Add karo DashboardScreen ke andar
