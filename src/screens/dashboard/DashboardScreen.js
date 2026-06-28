@@ -6,6 +6,7 @@ import { COLORS, SPACING, RADIUS, SHADOW } from '../../theme';
 import Avatar from '../../components/Avatar';
 import ReminderBadge from '../../components/ReminderBadge';
 import { signOut } from '../../services/auth';
+import { getProfile } from '../../services/database';
 
 function BarChart({ data }) {
   const maxVal = Math.max(...data.map(d => d.value), 1);
@@ -136,27 +137,28 @@ export default function DashboardScreen({ navigation }) {
 
   const handleSettle = async (uid, amt) => {
     if (amt < 0) {
-      // Fetch friend's UPI ID from profiles
+      const friendName = getName(uid);
+      const amount = Math.abs(amt);
       try {
-        const { data } = await require('../../services/database').getProfile(uid);
+        const { data } = await getProfile(uid);
         const upiId = data?.upi_id;
-        const friendName = getName(uid);
-        const amount = Math.abs(amt);
-
         if (upiId) {
           setSettleModal({ name: friendName, upiId, amount, uid });
         } else {
           Alert.alert(
             '✓ Settle Up',
-            `${friendName} ne UPI ID set nahi ki hai.\n\nYou owe ₹${amount.toFixed(2)} to ${friendName}.`,
+            `${friendName} ne UPI ID set nahi ki hai.\n\nApp mein UPI ID add karo phir QR se pay kar sakte ho!`,
             [
               { text: 'Go to Groups', onPress: () => goToTab('Groups') },
-              { text: 'Cancel', style: 'cancel' }
+              { text: 'OK', style: 'cancel' }
             ]
           );
         }
       } catch (e) {
-        goToTab('Groups');
+        Alert.alert('Settle Up', `You owe ₹${amount.toFixed(2)} to ${friendName}`, [
+          { text: 'Go to Groups', onPress: () => goToTab('Groups') },
+          { text: 'Cancel', style: 'cancel' }
+        ]);
       }
     } else {
       handleNudge(getName(uid));
