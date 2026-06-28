@@ -56,6 +56,12 @@ export default function DashboardScreen({ navigation }) {
     if (profile?.id) { loadGroups(profile.id); loadFriends(profile.id); }
   }, [profile?.id]);
 
+  useEffect(() => {
+    if (groups.length > 0 && profile?.id) {
+      groups.forEach(g => loadBills(g.id, profile.id));
+    }
+  }, [profile?.id]);
+
   // Load bills for all groups
   useEffect(() => {
     if (groups.length > 0 && profile?.id) {
@@ -530,5 +536,6 @@ const s = StyleSheet.create({
   exploreCost:       { color: COLORS.primary, fontWeight:'800', fontSize:13 },
   reminderTitle: { color: COLORS.text, fontSize:14, fontWeight:'600' },
 });
+
 
 
