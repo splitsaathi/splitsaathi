@@ -57,12 +57,15 @@ export default function EditProfileScreen({ navigation }) {
   const deleteOldAvatar = async (oldUrl) => {
     if (!oldUrl || !oldUrl.includes('supabase')) return;
     try {
-      // URL se path nikalo
-      const parts = oldUrl.split('/avatars/');
-      if (parts[1]) {
-        await supabase.storage.from('avatars').remove([parts[1].split('?')[0]]);
-        console.log('Old avatar deleted');
-      }
+      // URL format: .../storage/v1/object/public/avatars/PATH
+      const marker = '/object/public/avatars/';
+      const idx = oldUrl.indexOf(marker);
+      if (idx === -1) return;
+      const filePath = oldUrl.substring(idx + marker.length).split('?')[0];
+      console.log('Deleting old avatar:', filePath);
+      const { error } = await supabase.storage.from('avatars').remove([filePath]);
+      if (error) console.log('Delete error:', error.message);
+      else console.log('Old avatar deleted successfully!');
     } catch (e) { console.log('Delete old avatar error:', e); }
   };
 
