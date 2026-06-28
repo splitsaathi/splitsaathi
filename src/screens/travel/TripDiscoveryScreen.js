@@ -237,6 +237,8 @@ export default function TripDiscoveryScreen({ navigation }) {
       setActivating(false);
     }
   };
+
+  const tripsWithDist = useMemo(() =>
     ALL_TRIPS.map(t => ({
       ...t,
       dist: userCoords ? haversine(userCoords.lat, userCoords.lon, t.lat, t.lon) : t.baseDist || 500,
