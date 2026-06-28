@@ -19,9 +19,40 @@ export default function EditProfileScreen({ navigation }) {
   const [avatar,     setAvatar]     = useState(profile?.avatar_url || null);
   const [uploading,  setUploading]  = useState(false);
 
+  // ── Image compress function (10-15kb target) ─────────────────────────────
+  const compressImage = (uri) => new Promise((resolve, reject) => {
+    if (Platform.OS !== 'web') {
+      // Native pe expo-image-picker quality se hi compress hoga
+      resolve({ blob: null, isNative: true, uri });
+      return;
+    }
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      // Max 200x200 pixels — small size = small file
+      const MAX = 200;
+      let { width, height } = img;
+      if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
+      else                { width  = Math.round((width  * MAX) / height); height = MAX; }
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Quality 0.3 = ~10-15kb for 200x200
+      canvas.toBlob(blob => {
+        if (blob) resolve({ blob, isNative: false });
+        else reject(new Error('Canvas compression failed'));
+      }, 'image/jpeg', 0.3);
+    };
+    img.onerror = reject;
+    img.src = uri;
+  });
+
   const pickImage = async () => {
     try {
-      // Web pe permission ki zarurat nahi
       if (Platform.OS !== 'web') {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
@@ -34,47 +65,45 @@ export default function EditProfileScreen({ navigation }) {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.7,
+        quality: 0.5,
       });
 
       if (result.canceled || !result.assets?.[0]) return;
 
       setUploading(true);
-      const asset = result.assets[0];
-      const uri   = asset.uri;
-      const ext   = uri.split('.').pop()?.split('?')[0] || 'jpg';
-      const path  = `avatars/${profile.id}_${Date.now()}.${ext}`;
+      const uri  = result.assets[0].uri;
+      const path = `avatars/${profile.id}_${Date.now()}.jpg`;
+
+      // Compress karo
+      const { blob, isNative } = await compressImage(uri);
 
       let uploadError;
 
-      if (Platform.OS === 'web') {
-        // Web pe fetch se blob banao
-        const response = await fetch(uri);
-        const blob     = await response.blob();
+      if (Platform.OS === 'web' && blob) {
+        console.log('Compressed size:', blob.size, 'bytes');
         const { error } = await supabase.storage
           .from('avatars')
-          .upload(path, blob, { upsert: true, contentType: blob.type || 'image/jpeg' });
+          .upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
         uploadError = error;
       } else {
-        // Native pe ArrayBuffer use karo
-        const response = await fetch(uri);
+        // Native
+        const response    = await fetch(uri);
         const arrayBuffer = await response.arrayBuffer();
         const { error } = await supabase.storage
           .from('avatars')
-          .upload(path, arrayBuffer, { upsert: true, contentType: `image/${ext}` });
+          .upload(path, arrayBuffer, { upsert: true, contentType: 'image/jpeg' });
         uploadError = error;
       }
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
-        Alert.alert('Upload Failed', uploadError.message || 'Photo upload nahi ho saka. Dobara try karo.');
+        Alert.alert('Upload Failed', uploadError.message || 'Photo upload nahi ho saka.');
         setUploading(false);
         return;
       }
 
       const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-      const publicUrl = data.publicUrl;
-      setAvatar(publicUrl);
+      setAvatar(data.publicUrl);
       Alert.alert('✅ Photo Upload!', 'Profile photo update ho gaya. Save karo!');
 
     } catch (e) {
