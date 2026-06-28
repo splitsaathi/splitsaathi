@@ -344,7 +344,26 @@ export default function TripDiscoveryScreen({ navigation }) {
             <Text style={s.createGroupBtnText}>👥 Create Group & Split Expenses</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.launchBtn} onPress={() => setSyncModal(trip)}>
+          <TouchableOpacity style={s.launchBtn} onPress={() => {
+            console.log('Activate pressed', trip.title);
+            Alert.alert(
+              '🚀 Activate & Sync Split Group',
+              `"${trip.title}" trip ke liye group banana chahte ho?\n\n✅ Auto group create hoga\n👥 Friends add kar sakte ho\n💰 Expenses track hoga\n\nEstimated: ₹${trip.startsFrom.toLocaleString('en-IN')}/person`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: '✅ Group Banao!',
+                  onPress: () => navigation.navigate('Groups', {
+                    screen: 'CreateGroup',
+                    params: {
+                      prefillName: trip.title,
+                      prefillIcon: '✈️',
+                    }
+                  })
+                }
+              ]
+            );
+          }}>
             <Text style={s.launchBtnText}>🚀 Activate & Sync Split Group</Text>
           </TouchableOpacity>
         </View>
