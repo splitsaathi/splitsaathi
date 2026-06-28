@@ -635,7 +635,7 @@ Total must be a number. If unclear, estimate from items.` }
                 <Text style={{ fontSize:48, marginBottom:12 }}>📷</Text>
                 <Text style={{ color: COLORS.text, fontWeight:'700', fontSize:15, textAlign:'center', marginBottom:6 }}>AI Receipt Scanner</Text>
                 <Text style={{ color: COLORS.textMuted, fontSize:12, textAlign:'center', marginBottom:16, lineHeight:18 }}>
-                  Upload a photo of your receipt — Claude AI will extract all items automatically!
+                  Upload a clear photo of your receipt — items will be extracted automatically!
                 </Text>
                 {scanError ? (
                   <Text style={{ color: COLORS.owe, fontSize:12, textAlign:'center', marginBottom:12 }}>{scanError}</Text>
