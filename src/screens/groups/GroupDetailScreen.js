@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl,
-  Alert, ActivityIndicator, TextInput, Modal,
+  Alert, ActivityIndicator, TextInput, Modal, Platform,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore, useBillStore, useGroupStore, useFriendStore } from '../../store';
 import { COLORS, SPACING, RADIUS, SHADOW, CAT_ICONS } from '../../theme';
@@ -150,24 +151,75 @@ export default function GroupDetailScreen({ route, navigation }) {
     await loadBills(group.id, profile.id);
   };
 
-  // ── Receipt Scanner ───────────────────────────────────────────────────────────
-  const runScanDemo = () => {
-    setScanState('scanning');
-    setTimeout(() => {
-      setScannedBill({
-        merchant: 'Cafe Himalayan Oasis',
-        date: new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' }),
-        total: 2450,
-        items: [
-          { name:'Thukpa Soup Large x2', price:480 },
-          { name:'Steamed Chicken Momos x3', price:540 },
-          { name:'Apple Cider Juice', price:380 },
-          { name:'Woodfired Farm Pizza', price:650 },
-          { name:'Service Tax', price:400 },
-        ]
+  // ── Real Receipt Scanner with Claude AI ──────────────────────────────────────
+  const [scanError, setScanError] = useState('');
+
+  const pickAndScanReceipt = async () => {
+    setScanError('');
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setScanState('scanning');
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          const base64 = ev.target.result.split(',')[1];
+          await scanWithClaude(base64, file.type || 'image/jpeg');
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') { setScanError('Permission needed!'); return; }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        base64: true,
       });
-      setScanState('parsed');
-    }, 2000);
+      if (!result.canceled && result.assets[0]) {
+        setScanState('scanning');
+        await scanWithClaude(result.assets[0].base64, 'image/jpeg');
+      }
+    }
+  };
+
+  const scanWithClaude = async (base64Data, mediaType) => {
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
+              { type: 'text', text: `Extract bill/receipt information from this image. Return ONLY a JSON object with this exact format, no other text:
+{"merchant":"store name","date":"date string","total":1234,"items":[{"name":"item name","price":123}]}
+Total must be a number. If unclear, estimate from items.` }
+            ]
+          }]
+        })
+      });
+      const data = await response.json();
+      const text = data.content?.[0]?.text || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        setScannedBill(parsed);
+        setScanState('parsed');
+      } else {
+        throw new Error('Could not parse');
+      }
+    } catch (e) {
+      setScanError('Could not scan receipt. Try a clearer image.');
+      setScanState('idle');
+    }
   };
 
   const applyScannedBill = async () => {
@@ -581,10 +633,15 @@ export default function GroupDetailScreen({ route, navigation }) {
             {scanState === 'idle' && (
               <View style={s.scanIdleBox}>
                 <Text style={{ fontSize:48, marginBottom:12 }}>📷</Text>
-                <Text style={{ color: COLORS.text, fontWeight:'700', fontSize:15, textAlign:'center', marginBottom:6 }}>Capture receipt using camera</Text>
-                <Text style={{ color: COLORS.textMuted, fontSize:12, textAlign:'center', marginBottom:20, lineHeight:18 }}>Our AI/OCR engine will instantly parse individual splits.</Text>
-                <TouchableOpacity style={[s.fabBtn, { paddingHorizontal:24 }]} onPress={runScanDemo}>
-                  <Text style={{ color:'#fff', fontWeight:'800', fontSize:13 }}>📸 Simulate Camera Capture</Text>
+                <Text style={{ color: COLORS.text, fontWeight:'700', fontSize:15, textAlign:'center', marginBottom:6 }}>AI Receipt Scanner</Text>
+                <Text style={{ color: COLORS.textMuted, fontSize:12, textAlign:'center', marginBottom:16, lineHeight:18 }}>
+                  Upload a photo of your receipt — Claude AI will extract all items automatically!
+                </Text>
+                {scanError ? (
+                  <Text style={{ color: COLORS.owe, fontSize:12, textAlign:'center', marginBottom:12 }}>{scanError}</Text>
+                ) : null}
+                <TouchableOpacity style={[s.fabBtn, { paddingHorizontal:24 }]} onPress={pickAndScanReceipt}>
+                  <Text style={{ color:'#fff', fontWeight:'800', fontSize:13 }}>📁 Upload Receipt Photo</Text>
                 </TouchableOpacity>
               </View>
             )}
