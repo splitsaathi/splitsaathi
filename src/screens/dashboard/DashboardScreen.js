@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Modal, Image, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Pressable, StyleSheet, RefreshControl, Alert, Modal, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore, useGroupStore, useBillStore, useFriendStore } from '../../store';
 import { COLORS, SPACING, RADIUS, SHADOW } from '../../theme';
@@ -136,6 +136,7 @@ export default function DashboardScreen({ navigation }) {
   const goToTab = (tabName) => navigation.getParent()?.navigate(tabName);
 
   const handleSettle = async (uid, amt) => {
+    console.log('handleSettle called', uid, amt); // DEBUG
     if (amt < 0) {
       const friendName = getName(uid);
       const amount = Math.abs(amt);
@@ -230,21 +231,31 @@ export default function DashboardScreen({ navigation }) {
                   </Text>
                   <View style={{ flexDirection:'row', gap:6, marginTop:6 }}>
                     {amt > 0 && (
-                      <TouchableOpacity
+                      <Pressable
                         style={s.remindBtn}
                         onPress={() => handleNudge(getName(uid))}
                       >
                         <Text style={s.remindBtnText}>🔔 Remind</Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     )}
-                    <TouchableOpacity
-                      style={[s.settleSmBtn, { backgroundColor: amt < 0 ? COLORS.primary : 'transparent', borderColor: COLORS.primary }]}
-                      onPress={() => handleSettle(uid, amt)}
+                    {/* ✅ FIXED: TouchableOpacity → Pressable with cursor:pointer */}
+                    <Pressable
+                      style={[
+                        s.settleSmBtn,
+                        {
+                          backgroundColor: amt < 0 ? COLORS.primary : 'transparent',
+                          borderColor: COLORS.primary,
+                        }
+                      ]}
+                      onPress={() => {
+                        console.log('Settle button pressed!', uid, amt);
+                        handleSettle(uid, amt);
+                      }}
                     >
                       <Text style={[s.settleSmBtnText, { color: amt < 0 ? '#fff' : COLORS.primary }]}>
                         {amt < 0 ? '✓ Settle' : '💸 Request'}
                       </Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
                 </View>
               </View>
@@ -562,9 +573,10 @@ const s = StyleSheet.create({
   friendAmt:   { fontWeight:'700', fontSize:14 },
   friendStatus:{ fontSize:11, fontWeight:'600', marginTop:1 },
   nudgeText:   { color: COLORS.primary, fontSize:11, fontWeight:'700' },
-  remindBtn:   { borderWidth:1, borderColor: COLORS.border, borderRadius:8, paddingHorizontal:8, paddingVertical:4 },
+  remindBtn:   { borderWidth:1, borderColor: COLORS.border, borderRadius:8, paddingHorizontal:8, paddingVertical:4, cursor:'pointer' },
   remindBtnText: { color: COLORS.textSub, fontSize:11, fontWeight:'600' },
-  settleSmBtn:   { borderWidth:1, borderRadius:8, paddingHorizontal:10, paddingVertical:4 },
+  // ✅ FIXED: cursor:pointer aur zIndex add kiya
+  settleSmBtn:   { borderWidth:1, borderRadius:8, paddingHorizontal:10, paddingVertical:4, cursor:'pointer', zIndex:10 },
   settleSmBtnText: { fontSize:11, fontWeight:'700' },
   budgetCard:   { marginHorizontal: SPACING.md, marginTop: SPACING.lg, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.md, borderLeftWidth:4, borderLeftColor: COLORS.primary, borderWidth:1, borderColor: COLORS.borderLight },
   budgetLabel:  { color: COLORS.textMuted, fontSize:11, fontWeight:'700', letterSpacing:0.8 },
@@ -613,5 +625,3 @@ const s = StyleSheet.create({
   premiumBtn:    { backgroundColor: COLORS.goldLight, borderRadius: RADIUS.sm, paddingHorizontal:10, paddingVertical:6 },
   premiumBtnText:{ color:'#78350f', fontSize:12, fontWeight:'700' },
 });
-
-// SETTLEMENT QR MODAL COMPONENT - Add karo DashboardScreen ke andar
