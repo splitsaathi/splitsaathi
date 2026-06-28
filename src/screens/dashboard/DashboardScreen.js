@@ -47,7 +47,7 @@ function HorizontalBreakdown({ data }) {
 export default function DashboardScreen({ navigation }) {
   const { profile }                           = useAuthStore();
   const { groups, groupMembers, loadGroups }  = useGroupStore();
-  const { bills, getBalances }                = useBillStore();
+  const { bills, loadBills, getBalances }                = useBillStore();
   const { friends, loadFriends }              = useFriendStore();
   const [refreshing, setRefreshing]           = useState(false);
   const [chartType,  setChartType]            = useState('bar');
@@ -55,6 +55,19 @@ export default function DashboardScreen({ navigation }) {
   useEffect(() => {
     if (profile?.id) { loadGroups(profile.id); loadFriends(profile.id); }
   }, [profile?.id]);
+
+  // Load bills for all groups
+  useEffect(() => {
+    if (groups.length > 0 && profile?.id) {
+      groups.forEach(g => loadBills(g.id, profile.id));
+    }
+  }, [groups.length, profile?.id]);
+
+  useEffect(() => {
+    if (groups.length > 0 && profile?.id) {
+      groups.forEach(g => loadBills(g.id, profile.id));
+    }
+  }, [groups.length, profile?.id]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -517,3 +530,5 @@ const s = StyleSheet.create({
   exploreCost:       { color: COLORS.primary, fontWeight:'800', fontSize:13 },
   reminderTitle: { color: COLORS.text, fontSize:14, fontWeight:'600' },
 });
+
+
