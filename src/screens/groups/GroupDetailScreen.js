@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl,
-  Alert, ActivityIndicator, TextInput, Modal, Platform,
+  Alert, ActivityIndicator, TextInput, Modal, Platform, KeyboardAvoidingView, FlatList,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import BillCard from '../../components/BillCard';
 import EmptyState from '../../components/EmptyState';
 import SettleUpSheet from '../../components/SettleUpSheet';
 import { exportGroupToExcel, shareExcelFile, emailExcelFile } from '../../utils/exportToExcel';
+import { supabase } from '../../services/supabase';
 
 const CAT_COLORS = {
   Stay:'#6366f1', Hotel:'#6366f1', Accommodation:'#6366f1',
@@ -53,6 +54,12 @@ export default function GroupDetailScreen({ route, navigation }) {
   const [showAddMember, setShowAddMember] = useState(false);
   const [addingMember,  setAddingMember]  = useState(null);
 
+  // ── Chat State ────────────────────────────────────────────────────────────────
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput,    setChatInput]    = useState('');
+  const [chatLoading,  setChatLoading]  = useState(false);
+  const chatListRef = useRef(null);
+
   const groupBills = bills[group.id] || [];
   const members    = groupMembers[group.id] || [];
   const myBal      = getBalances(groupBills, profile.id);
@@ -67,6 +74,65 @@ export default function GroupDetailScreen({ route, navigation }) {
     if (uid === profile?.id) return 'You';
     return members.find(m => m.id === uid)?.name || 'User';
   }, [members, profile]);
+
+  // ── Chat: Load & Realtime ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (activeTab !== 'chat') return;
+    loadChatMessages();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel(`group_chat_${group.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'group_messages',
+        filter: `group_id=eq.${group.id}`,
+      }, (payload) => {
+        setChatMessages(prev => [...prev, payload.new]);
+        setTimeout(() => chatListRef.current?.scrollToEnd({ animated: true }), 100);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [activeTab, group.id]);
+
+  const loadChatMessages = async () => {
+    setChatLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('group_messages')
+        .select('*')
+        .eq('group_id', group.id)
+        .order('created_at', { ascending: true })
+        .limit(100);
+      if (!error && data) {
+        setChatMessages(data);
+        setTimeout(() => chatListRef.current?.scrollToEnd({ animated: false }), 100);
+      }
+    } catch (e) { console.log('Chat load error:', e); }
+    setChatLoading(false);
+  };
+
+  const sendMessage = async () => {
+    const text = chatInput.trim();
+    if (!text) return;
+    setChatInput('');
+    try {
+      await supabase.from('group_messages').insert({
+        group_id:   group.id,
+        user_id:    profile.id,
+        user_name:  profile.name,
+        message:    text,
+        created_at: new Date().toISOString(),
+      });
+    } catch (e) { console.log('Send message error:', e); }
+  };
+
+  const formatTime = (iso) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12: true });
+  };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -318,9 +384,11 @@ Total must be a number. If unclear, estimate from items.` }
 
         {/* Tab Bar */}
         <View style={s.tabBar}>
-          {['bills','balances','totals','stats'].map(t => (
+          {['bills','balances','totals','stats','chat'].map(t => (
             <TouchableOpacity key={t} style={[s.tab, activeTab===t && s.tabActive]} onPress={() => setActiveTab(t)}>
-              <Text style={[s.tabText, activeTab===t && s.tabTextActive]}>{t.charAt(0).toUpperCase()+t.slice(1)}</Text>
+              <Text style={[s.tabText, activeTab===t && s.tabTextActive]}>
+                {t === 'chat' ? '💬' : t.charAt(0).toUpperCase()+t.slice(1)}
+              </Text>
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={s.addBillBtn} onPress={() => navigation.navigate('AddBill', { group, members })}>
@@ -532,6 +600,74 @@ Total must be a number. If unclear, estimate from items.` }
 
         <View style={{ height:80 }} />
       </ScrollView>
+
+      {/* ── CHAT TAB ── */}
+      {activeTab === 'chat' && (
+        <KeyboardAvoidingView
+          style={s.chatContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          {/* Messages List */}
+          {chatLoading ? (
+            <View style={{ flex:1, alignItems:'center', justifyContent:'center' }}>
+              <ActivityIndicator color={COLORS.primary} size="large" />
+            </View>
+          ) : (
+            <ScrollView
+              ref={chatListRef}
+              style={{ flex:1 }}
+              contentContainerStyle={{ padding: SPACING.md, paddingBottom: SPACING.sm }}
+              showsVerticalScrollIndicator={false}
+              onContentSizeChange={() => chatListRef.current?.scrollToEnd({ animated: true })}
+            >
+              {chatMessages.length === 0 && (
+                <View style={{ alignItems:'center', paddingVertical:40 }}>
+                  <Text style={{ fontSize:48, marginBottom:12 }}>💬</Text>
+                  <Text style={{ color: COLORS.text, fontWeight:'700', fontSize:16, marginBottom:6 }}>Group Chat</Text>
+                  <Text style={{ color: COLORS.textMuted, fontSize:13, textAlign:'center' }}>Trip ke dauran yahan baat karo!</Text>
+                </View>
+              )}
+              {chatMessages.map((msg, i) => {
+                const isMe = msg.user_id === profile.id;
+                const showName = !isMe && (i === 0 || chatMessages[i-1]?.user_id !== msg.user_id);
+                return (
+                  <View key={msg.id || i} style={[s.chatBubbleWrap, isMe && s.chatBubbleWrapMe]}>
+                    {!isMe && showName && (
+                      <Text style={s.chatSenderName}>{msg.user_name || 'User'}</Text>
+                    )}
+                    <View style={[s.chatBubble, isMe ? s.chatBubbleMe : s.chatBubbleThem]}>
+                      <Text style={[s.chatBubbleText, isMe && { color:'#fff' }]}>{msg.message}</Text>
+                      <Text style={[s.chatTime, isMe && { color:'rgba(255,255,255,0.7)' }]}>{formatTime(msg.created_at)}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          )}
+
+          {/* Input Bar */}
+          <View style={s.chatInputBar}>
+            <TextInput
+              style={s.chatInput}
+              placeholder="Message likhо..."
+              placeholderTextColor={COLORS.textMuted}
+              value={chatInput}
+              onChangeText={setChatInput}
+              multiline
+              maxLength={500}
+              onSubmitEditing={sendMessage}
+            />
+            <TouchableOpacity
+              style={[s.chatSendBtn, !chatInput.trim() && { opacity:0.4 }]}
+              onPress={sendMessage}
+              disabled={!chatInput.trim()}
+            >
+              <Text style={{ color:'#fff', fontSize:18 }}>➤</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      )}
 
       {/* ── ADD MEMBER MODAL ── */}
       <Modal visible={showAddMember} animationType="slide" transparent>
@@ -763,4 +899,18 @@ const s = StyleSheet.create({
   modalInput:     { backgroundColor: COLORS.surfaceHigh, borderRadius: RADIUS.md, height:44, color: COLORS.text, paddingHorizontal:12, fontSize:14, marginBottom:16, borderWidth:1, borderColor: COLORS.borderLight },
   catChip:        { backgroundColor: COLORS.surfaceHigh, paddingHorizontal:10, paddingVertical:8, borderRadius:12, borderWidth:1, borderColor: COLORS.borderLight },
   scanIdleBox:    { backgroundColor: COLORS.surfaceHigh, borderRadius: RADIUS.xl, padding:24, alignItems:'center', borderWidth:1, borderColor: COLORS.borderLight, borderStyle:'dashed', minHeight:220 },
+
+  // Chat styles
+  chatContainer:   { position:'absolute', top:0, left:0, right:0, bottom:0, backgroundColor: COLORS.bg },
+  chatBubbleWrap:  { marginBottom:8, alignItems:'flex-start' },
+  chatBubbleWrapMe:{ alignItems:'flex-end' },
+  chatSenderName:  { color: COLORS.primary, fontSize:11, fontWeight:'700', marginBottom:3, marginLeft:4 },
+  chatBubble:      { maxWidth:'78%', borderRadius:16, paddingHorizontal:14, paddingVertical:9, borderBottomLeftRadius:4 },
+  chatBubbleMe:    { backgroundColor: COLORS.primary, borderBottomLeftRadius:16, borderBottomRightRadius:4 },
+  chatBubbleThem:  { backgroundColor: COLORS.surface, borderWidth:1, borderColor: COLORS.borderLight },
+  chatBubbleText:  { color: COLORS.text, fontSize:14, lineHeight:20 },
+  chatTime:        { color: COLORS.textMuted, fontSize:10, marginTop:4, textAlign:'right' },
+  chatInputBar:    { flexDirection:'row', alignItems:'flex-end', padding: SPACING.sm, backgroundColor: COLORS.surface, borderTopWidth:1, borderTopColor: COLORS.borderLight, gap:8 },
+  chatInput:       { flex:1, backgroundColor: COLORS.surfaceHigh, borderRadius:20, paddingHorizontal:16, paddingVertical:10, color: COLORS.text, fontSize:14, maxHeight:100, borderWidth:1, borderColor: COLORS.borderLight },
+  chatSendBtn:     { width:44, height:44, borderRadius:22, backgroundColor: COLORS.primary, alignItems:'center', justifyContent:'center' },
 });
