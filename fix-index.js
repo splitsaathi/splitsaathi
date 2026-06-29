@@ -6,6 +6,7 @@ html = html.replace(/<script src=/g, '<script type="module" src=');
 html = html.replace(/\s+defer/g, '');
 const seoTitle = '<title>SplitSaathi - Smart Expense Splitter App for Indians | Free Bill Splitting</title>';
 const seoMeta = '<meta name="description" content="SplitSaathi - India ka best expense splitting app. Group trips, bill splitting, UPI payments, aur friends ke saath expenses track karo. Free!" /><meta name="keywords" content="expense splitter india, bill splitting app, group expense tracker, splitwise alternative india, trip expense manager, UPI payment split" /><meta name="robots" content="index, follow" /><link rel="canonical" href="https://splitsaathi.com/" /><meta property="og:title" content="SplitSaathi - Smart Expense Splitter" /><meta property="og:description" content="Group trips, shared bills, UPI settlements. India ka #1 free expense splitting app!" /><meta property="og:url" content="https://splitsaathi.com" /><meta property="og:type" content="website" /><meta name="theme-color" content="#1a56db" />';
+<meta name="google-site-verification" content="eaPklf5hlEGiO455s0fYLPJDbpgKMDRYWXYc6Q_O4yA" />
 html = html.replace('<title>SplitSaathi</title>', seoTitle + seoMeta);
 fs.writeFileSync(indexPath, html);
 console.log('✅ Fixed: type=module added');
