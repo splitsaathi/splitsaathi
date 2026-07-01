@@ -206,6 +206,63 @@ export default function DashboardScreen({ navigation }) {
           </View>
         </View>
 
+        {/* ── 🔥 Popular Trips Banner ── */}
+        <View style={{ marginHorizontal: SPACING.md, marginTop: SPACING.lg }}>
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionTitle}>🔥 Popular Trips</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('TripDiscovery')}>
+              <Text style={s.sectionLink}>SEE ALL →</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {[
+              { title:'Goa Beaches',        emoji:'🏖️', cost:'₹6,500',  rating:'4.9', tag:'TRENDING',   color:'#06b6d4', bg:'#0e7490' },
+              { title:'Manali Snow Peaks',  emoji:'🏔️', cost:'₹9,800',  rating:'4.9', tag:'BESTSELLER', color:'#8b5cf6', bg:'#6d28d9' },
+              { title:'Jim Corbett Safari', emoji:'🐯', cost:'₹12,500', rating:'4.9', tag:'WILDLIFE',    color:'#10b981', bg:'#065f46' },
+              { title:'Rajasthan Heritage', emoji:'🏰', cost:'₹7,500',  rating:'4.8', tag:'CULTURE',     color:'#f59e0b', bg:'#92400e' },
+              { title:'Kerala Backwaters',  emoji:'🚣', cost:'₹9,000',  rating:'4.8', tag:'PEACEFUL',    color:'#3b82f6', bg:'#1e40af' },
+              { title:'Leh Ladakh',         emoji:'🏍️', cost:'₹20,000', rating:'4.9', tag:'ADVENTURE',   color:'#ef4444', bg:'#991b1b' },
+              { title:'Andaman Islands',    emoji:'🏝️', cost:'₹22,000', rating:'4.9', tag:'PREMIUM',     color:'#06b6d4', bg:'#164e63' },
+              { title:'Varanasi Spiritual', emoji:'🕌', cost:'₹3,500',  rating:'4.8', tag:'SPIRITUAL',   color:'#a855f7', bg:'#6b21a8' },
+            ].map((trip, i) => (
+              <TouchableOpacity
+                key={i}
+                style={[s.popularTripCard, { backgroundColor: trip.bg }]}
+                onPress={() => navigation.navigate('TripDiscovery')}
+                activeOpacity={0.85}
+              >
+                {/* Tag Badge */}
+                <View style={[s.popularTripTag, { backgroundColor: trip.color }]}>
+                  <Text style={s.popularTripTagText}>{trip.tag}</Text>
+                </View>
+
+                {/* Emoji */}
+                <Text style={s.popularTripEmoji}>{trip.emoji}</Text>
+
+                {/* Title */}
+                <Text style={s.popularTripTitle} numberOfLines={2}>{trip.title}</Text>
+
+                {/* Rating & Price */}
+                <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginTop:8 }}>
+                  <View style={{ flexDirection:'row', alignItems:'center', gap:3 }}>
+                    <Text style={{ color:'#fbbf24', fontSize:11 }}>⭐</Text>
+                    <Text style={{ color:'rgba(255,255,255,0.9)', fontSize:11, fontWeight:'700' }}>{trip.rating}</Text>
+                  </View>
+                  <Text style={s.popularTripPrice}>{trip.cost}</Text>
+                </View>
+
+                {/* Book Now */}
+                <TouchableOpacity
+                  style={s.popularTripBtn}
+                  onPress={() => navigation.navigate('TripDiscovery')}
+                >
+                  <Text style={s.popularTripBtnText}>Explore →</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* Friend Balances with Settle */}
         {Object.keys(dashBal).length > 0 && (
           <View style={s.section}>
@@ -617,4 +674,14 @@ const s = StyleSheet.create({
   exploreCost:      { color: COLORS.primary, fontWeight:'800', fontSize:13 },
   premiumBtn:    { backgroundColor: COLORS.goldLight, borderRadius: RADIUS.sm, paddingHorizontal:10, paddingVertical:6 },
   premiumBtnText:{ color:'#78350f', fontSize:12, fontWeight:'700' },
+
+  // Popular Trips Banner
+  popularTripCard:    { width:160, borderRadius:16, padding:14, marginRight:12, overflow:'hidden', position:'relative' },
+  popularTripTag:     { borderRadius:6, paddingHorizontal:7, paddingVertical:3, alignSelf:'flex-start', marginBottom:10 },
+  popularTripTagText: { color:'#fff', fontSize:9, fontWeight:'800', letterSpacing:0.5 },
+  popularTripEmoji:   { fontSize:36, marginBottom:8 },
+  popularTripTitle:   { color:'#fff', fontWeight:'800', fontSize:14, lineHeight:18, minHeight:36 },
+  popularTripPrice:   { color:'#fff', fontWeight:'900', fontSize:13 },
+  popularTripBtn:     { backgroundColor:'rgba(255,255,255,0.2)', borderRadius:8, paddingVertical:6, alignItems:'center', marginTop:10, borderWidth:1, borderColor:'rgba(255,255,255,0.3)' },
+  popularTripBtnText: { color:'#fff', fontWeight:'700', fontSize:12 },
 });
