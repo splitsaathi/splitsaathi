@@ -386,7 +386,7 @@ Total must be a number. If unclear, estimate from items.` }
         <View style={s.tabBar}>
           {['bills','balances','totals','stats','chat'].map(t => (
             <TouchableOpacity key={t} style={[s.tab, activeTab===t && s.tabActive]} onPress={() => setActiveTab(t)}>
-              <Text style={[s.tabText, activeTab===t && s.tabTextActive]}>
+              <Text style={[s.tabText, activeTab===t && s.tabTextActive, t === 'chat' && { fontSize:18 }]}>
                 {t === 'chat' ? '💬' : t.charAt(0).toUpperCase()+t.slice(1)}
               </Text>
             </TouchableOpacity>
@@ -663,7 +663,7 @@ Total must be a number. If unclear, estimate from items.` }
               onPress={sendMessage}
               disabled={!chatInput.trim()}
             >
-              <Text style={{ color:'#fff', fontSize:18 }}>➤</Text>
+              <Text style={{ color:'#fff', fontSize:24 }}>➤</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -914,5 +914,3 @@ const s = StyleSheet.create({
   chatInput:       { flex:1, backgroundColor: COLORS.surfaceHigh, borderRadius:20, paddingHorizontal:16, paddingVertical:10, color: COLORS.text, fontSize:14, maxHeight:100, borderWidth:1, borderColor: COLORS.borderLight },
   chatSendBtn:     { width:44, height:44, borderRadius:22, backgroundColor: COLORS.primary, alignItems:'center', justifyContent:'center' },
 });
- 
- 
