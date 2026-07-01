@@ -230,14 +230,7 @@ export default function DashboardScreen({ navigation }) {
                     {amt>0 ? 'owes you' : 'you owe'}
                   </Text>
                   <View style={{ flexDirection:'row', gap:6, marginTop:6 }}>
-                    {amt > 0 && (
-                      <Pressable
-                        style={s.remindBtn}
-                        onPress={() => handleNudge(getName(uid))}
-                      >
-                        <Text style={s.remindBtnText}>🔔 Remind</Text>
-                      </Pressable>
-                    )}
+                    {/* Remind button removed */}
                     {/* ✅ FIXED: TouchableOpacity → Pressable with cursor:pointer */}
                     <Pressable
                       style={[
