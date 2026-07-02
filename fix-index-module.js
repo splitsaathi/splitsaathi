@@ -1,6 +1,9 @@
-// fix-index-module.js
-// Run this AFTER `node copy-admin.js` and the xcopy step, BEFORE git push.
-// It finds the AppEntry-*.js script tag in docs/index.html and ensures it has type="module".
+// fix-index-module.js  (self-healing version)
+// Run this AFTER the xcopy step, BEFORE git push.
+// Fixes docs/index.html so the AppEntry script tag always has:
+//   1. A space between "script" and "src="  (in case an older run mangled it)
+//   2. type="module"  (Expo's web export doesn't add this by default)
+// Safe to run any number of times — always converges to the correct tag.
 
 const fs = require('fs');
 const path = require('path');
@@ -13,10 +16,13 @@ if (!fs.existsSync(indexPath)) {
 }
 
 let html = fs.readFileSync(indexPath, 'utf8');
+const original = html;
 
-// Match any <script ...src="...AppEntry-....js"...></script> tag (any attribute order)
+// Step 1: repair "<scriptsrc=" (missing space) if present, from any earlier bad run
+html = html.replace(/<script(?=src=)/gi, '<script ');
+
+// Step 2: find the AppEntry script tag and ensure it has type="module"
 const scriptTagRegex = /<script([^>]*src="[^"]*AppEntry-[^"]*\.js"[^>]*)>/i;
-
 const match = html.match(scriptTagRegex);
 
 if (!match) {
@@ -25,18 +31,18 @@ if (!match) {
 }
 
 let attrs = match[1];
-
-if (/type\s*=\s*"module"/i.test(attrs)) {
-  console.log('✅ type="module" already present. Nothing to do.');
-  process.exit(0);
+if (!/type\s*=\s*"module"/i.test(attrs)) {
+  const newAttrs = attrs + ' type="module"';
+  html = html.replace(scriptTagRegex, `<script${newAttrs}>`);
 }
 
-// Remove defer/async if present (type=module is deferred by default, but harmless either way)
-// Just append type="module" to the attributes
-const newAttrs = attrs.trim() + ' type="module"';
-const newTag = `<script${newAttrs}>`;
+if (html === original) {
+  console.log('✅ Already correct — nothing to fix.');
+} else {
+  fs.writeFileSync(indexPath, html, 'utf8');
+  console.log('✅ Fixed docs/index.html (space + type="module" both verified).');
+}
 
-html = html.replace(scriptTagRegex, newTag);
-
-fs.writeFileSync(indexPath, html, 'utf8');
-console.log('✅ Fixed: type="module" added to AppEntry script tag in docs/index.html');
+// Show the final tag so you can eyeball it before committing
+const finalMatch = html.match(/<script[^>]*AppEntry[^>]*>/i);
+console.log('Final tag:', finalMatch ? finalMatch[0] : '(not found)');
