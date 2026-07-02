@@ -136,7 +136,8 @@
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">
-      <h1>🪙 Splitsathi</h1>
+      <img id="login-logo-img" src="" alt="Logo" style="display:none;max-width:64px;max-height:64px;margin:0 auto 8px;border-radius:12px"/>
+      <h1 id="login-logo-text">🪙 Splitsathi</h1>
       <p>Admin Dashboard</p>
     </div>
     <div class="form-group">
@@ -156,9 +157,12 @@
 <div id="app">
   <div class="layout">
     <aside class="sidebar">
-      <div class="sidebar-logo">
-        <h2>🪙 Splitsathi</h2>
-        <span>Admin Panel</span>
+      <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px">
+        <img id="sidebar-logo-img" src="" alt="Logo" style="display:none;width:32px;height:32px;border-radius:8px;object-fit:cover"/>
+        <div>
+          <h2 id="sidebar-logo-text">🪙 Splitsathi</h2>
+          <span>Admin Panel</span>
+        </div>
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section">
@@ -209,8 +213,8 @@
         <!-- DASHBOARD -->
         <div class="page active" id="page-dashboard">
           <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value" id="stat-users">-</div><div class="stat-change up">Loading...</div></div>
-            <div class="stat-card"><div class="stat-label">Total Groups</div><div class="stat-value" id="stat-groups">-</div><div class="stat-change up">Loading...</div></div>
+            <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value" id="stat-users">-</div><div class="stat-change up">All time</div></div>
+            <div class="stat-card"><div class="stat-label">Total Groups</div><div class="stat-value" id="stat-groups">-</div><div class="stat-change up">All time</div></div>
             <div class="stat-card"><div class="stat-label">Total Expenses</div><div class="stat-value" id="stat-expenses">-</div><div class="stat-change up">All time</div></div>
             <div class="stat-card"><div class="stat-label">Popular Trips</div><div class="stat-value" id="stat-popular">-</div><div class="stat-change up">Banner trips</div></div>
           </div>
@@ -338,6 +342,24 @@
         <!-- SETTINGS -->
         <div class="page" id="page-settings">
           <div class="content-grid">
+            <div class="content-card">
+              <h3>🖼️ Branding</h3>
+              <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+                <div id="logo-preview-wrap" style="width:72px;height:72px;border-radius:14px;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:32px">
+                  <img id="logo-preview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover"/>
+                  <span id="logo-preview-emoji">🪙</span>
+                </div>
+                <div style="flex:1">
+                  <div style="font-size:13px;color:var(--text2);margin-bottom:8px">PNG/JPG, square image recommended (min 128x128px)</div>
+                  <input type="file" id="logo-file-input" accept="image/*" style="display:none" onchange="handleLogoSelect(event)"/>
+                  <div style="display:flex;gap:8px">
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('logo-file-input').click()">📤 Choose Image</button>
+                    <button class="btn btn-danger btn-sm" onclick="resetLogo()">↺ Reset to Default</button>
+                  </div>
+                </div>
+              </div>
+              <div id="logo-status" style="font-size:13px;color:var(--text2)"></div>
+            </div>
             <div class="content-card">
               <h3>⚙️ Feature Flags</h3>
               <div style="display:flex;flex-direction:column;gap:12px">
@@ -947,7 +969,64 @@ async function loadNotificationHistory() {
   } catch(e) { el.innerHTML = '<div class="empty"><p style="font-size:13px">Run the SQL to create "admin_notifications" table first.</p></div>'; }
 }
 
-// ── ANNOUNCEMENTS ──────────────────────────────────────────────────────────
+// ── BRANDING / LOGO ──────────────────────────────────────────────────────────
+async function loadLogo() {
+  try {
+    const data = await db(`app_settings?key=eq.logo_url&select=value`);
+    const url = data && data[0] ? data[0].value : null;
+    applyLogo(url);
+  } catch (e) { /* table may not exist yet, silently fall back to default */ }
+}
+
+function applyLogo(url) {
+  const imgs = [document.getElementById('login-logo-img'), document.getElementById('sidebar-logo-img'), document.getElementById('logo-preview')];
+  const texts = [document.getElementById('login-logo-text'), document.getElementById('sidebar-logo-text')];
+  const emoji = document.getElementById('logo-preview-emoji');
+  if (url) {
+    imgs.forEach(el => { if (el) { el.src = url; el.style.display = el.id === 'logo-preview' ? 'block' : 'inline-block'; } });
+    texts.forEach(el => { if (el) el.textContent = el.textContent.replace('🪙 ', ''); });
+    if (emoji) emoji.style.display = 'none';
+  } else {
+    imgs.forEach(el => { if (el) el.style.display = 'none'; });
+    if (emoji) emoji.style.display = 'block';
+  }
+}
+
+async function handleLogoSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('logo-status');
+  statusEl.textContent = 'Uploading...';
+  try {
+    const ext = file.name.split('.').pop();
+    const path = `logo.${ext}`;
+    const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/branding/${path}`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${adminAccessToken || SUPABASE_KEY}`, 'x-upsert': 'true', 'Content-Type': file.type },
+      body: file
+    });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(uploadRes.status === 404 ? 'Storage bucket "branding" not found — create it first (see instructions).' : errText);
+    }
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/branding/${path}?t=${Date.now()}`;
+    await db('app_settings', { method: 'POST', body: { key: 'logo_url', value: publicUrl }, prefer: 'resolution=merge-duplicates' });
+    applyLogo(publicUrl);
+    statusEl.textContent = '✅ Logo updated!';
+    showToast('Logo updated!');
+  } catch (e) {
+    statusEl.textContent = '❌ ' + e.message;
+    showToast('Upload failed: ' + e.message, 'error');
+  }
+}
+
+async function resetLogo() {
+  try {
+    await db('app_settings?key=eq.logo_url', { method: 'DELETE' });
+    applyLogo(null);
+    document.getElementById('logo-status').textContent = 'Reset to default.';
+  } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
 function openAnnouncementModal() {
   document.getElementById('ann-title').value = '';
   document.getElementById('ann-message').value = '';
@@ -1027,6 +1106,7 @@ function showToast(msg, type = 'success') {
 }
 document.querySelectorAll('.modal-overlay').forEach(overlay => { overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); }); });
 window.addEventListener('load', () => {
+  loadLogo();
   const savedToken = sessionStorage.getItem('admin_access_token');
   if (savedToken) { adminAccessToken = savedToken; showApp(); }
   document.getElementById('login-password').addEventListener('keypress', e => { if(e.key==='Enter') adminLogin(); });
