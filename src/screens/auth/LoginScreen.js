@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, ScrollView, Dimensions,
+  ActivityIndicator, Alert, ScrollView, Dimensions, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { signIn, signInWithGoogle } from '../../services/auth';
 import { COLORS, SPACING, RADIUS } from '../../theme';
 
 const { width, height } = Dimensions.get('window');
+
+// Fetched from Admin Panel -> Settings -> Branding (same logo shown there)
+const SUPABASE_URL = 'https://bmhgnbvaufeafhennvaj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtaGduYnZhdWZlYWZoZW5udmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI4MTcsImV4cCI6MjA5NzU0ODgxN30.ZQXBEI23RMG5qIJAmGdKvcgPciPj2Jlpyd3XqSRSRpc';
 
 const FEATURES = [
   { icon: '✈️', label: 'trips' },
@@ -23,6 +27,21 @@ export default function LoginScreen({ navigation }) {
   const [gLoading, setGLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [view,     setView]     = useState('landing'); // 'landing' | 'login'
+  const [logoUrl,  setLogoUrl]  = useState(null);
+
+  useEffect(() => {
+    fetch(`${SUPABASE_URL}/rest/v1/app_settings?key=eq.logo_url&select=value`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+    })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => { if (data && data[0] && data[0].value) setLogoUrl(data[0].value); })
+      .catch(() => {}); // silently keep emoji fallback if this fails
+  }, []);
+
+  const Logo = ({ size = 24, textStyle }) =>
+    logoUrl
+      ? <Image source={{ uri: logoUrl }} style={{ width: size, height: size, borderRadius: size * 0.2 }} />
+      : <Text style={textStyle}>💰</Text>;
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -52,7 +71,7 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
 
           <View style={s.logoRow}>
-            <Text style={s.logoEmoji}>💰</Text>
+            <Logo size={28} textStyle={s.logoEmoji} />
             <Text style={s.logoText}>Splitsathi</Text>
           </View>
 
@@ -117,7 +136,7 @@ export default function LoginScreen({ navigation }) {
         {/* Nav */}
         <View style={s.nav}>
           <View style={s.navLogo}>
-            <Text style={s.navLogoEmoji}>💰</Text>
+            <Logo size={24} textStyle={s.navLogoEmoji} />
             <Text style={s.navLogoTxt}>Splitsathi</Text>
           </View>
           <View style={s.navActions}>
