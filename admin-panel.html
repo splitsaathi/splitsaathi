@@ -442,9 +442,14 @@
           <input type="color" id="pt-bg-picker" value="#0e7490" style="width:40px;height:36px;border:none;border-radius:8px;cursor:pointer;background:none" oninput="document.getElementById('pt-bg').value=this.value"/>
         </div>
         <div class="color-row">
-          ${['#0e7490','#6d28d9','#065f46','#92400e','#1e40af','#991b1b','#164e63','#6b21a8'].map(c =>
-            `<div class="color-swatch" style="background:${c}" onclick="selectBg('${c}')"></div>`
-          ).join('')}
+          <div class="color-swatch" style="background:#0e7490" onclick="selectBg('#0e7490')"></div>
+          <div class="color-swatch" style="background:#6d28d9" onclick="selectBg('#6d28d9')"></div>
+          <div class="color-swatch" style="background:#065f46" onclick="selectBg('#065f46')"></div>
+          <div class="color-swatch" style="background:#92400e" onclick="selectBg('#92400e')"></div>
+          <div class="color-swatch" style="background:#1e40af" onclick="selectBg('#1e40af')"></div>
+          <div class="color-swatch" style="background:#991b1b" onclick="selectBg('#991b1b')"></div>
+          <div class="color-swatch" style="background:#164e63" onclick="selectBg('#164e63')"></div>
+          <div class="color-swatch" style="background:#6b21a8" onclick="selectBg('#6b21a8')"></div>
         </div>
       </div>
       <div class="field">
