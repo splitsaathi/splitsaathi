@@ -584,8 +584,9 @@ async function db(table, options = {}, _retried = false) {
     throw new Error('Session expired');
   }
   if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || 'API Error'); }
-  if (res.status === 204) return null;
-  return res.json();
+  const text = await res.text();
+  if (!text) return null;
+  try { return JSON.parse(text); } catch (e) { return null; }
 }
 
 // ── SECURE LOGIN (Supabase Auth) ─────────────────────────────────────────────
@@ -1036,7 +1037,7 @@ async function handleLogoSelect(event) {
       throw new Error(uploadRes.status === 404 ? 'Storage bucket "branding" not found — create it first (see instructions).' : errText);
     }
     const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/branding/${path}?t=${Date.now()}`;
-    await db('app_settings', { method: 'POST', body: { key: 'logo_url', value: publicUrl }, prefer: 'resolution=merge-duplicates' });
+    await db('app_settings', { method: 'POST', body: { key: 'logo_url', value: publicUrl }, prefer: 'resolution=merge-duplicates,return=representation' });
     applyLogo(publicUrl);
     statusEl.textContent = '✅ Logo updated!';
     showToast('Logo updated!');
