@@ -120,7 +120,9 @@
 
   /* Popular Trip Preview Card */
   .trip-preview-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
-  .trip-preview-card { width: 160px; border-radius: 16px; padding: 14px; position: relative; }
+  .trip-preview-card { width: 160px; border-radius: 16px; padding: 14px; position: relative; background-size: cover; background-position: center; overflow: hidden; }
+  .trip-preview-card.has-photo::before { content: ''; position: absolute; inset: 0; border-radius: 16px; background: linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0.15) 65%); }
+  .trip-preview-card > * { position: relative; z-index: 1; }
   .trip-preview-tag { border-radius: 6px; padding: 3px 7px; font-size: 9px; font-weight: 800; color: #fff; display: inline-block; margin-bottom: 10px; }
   .trip-preview-emoji { font-size: 36px; margin-bottom: 8px; display: block; }
   .trip-preview-title { color: #fff; font-weight: 800; font-size: 13px; line-height: 18px; margin-bottom: 8px; }
@@ -403,9 +405,27 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="pt-id"/>
+      <input type="hidden" id="pt-image-url"/>
+      <div class="field">
+        <label>Trip Photo (optional — shown instead of emoji if set)</label>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div id="pt-photo-preview-wrap" style="width:64px;height:64px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+            <img id="pt-photo-preview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover"/>
+            <span id="pt-photo-preview-empty" style="font-size:11px;color:var(--text2)">No photo</span>
+          </div>
+          <div style="flex:1">
+            <input type="file" id="pt-photo-input" accept="image/*" style="display:none" onchange="handlePtPhotoSelect(event)"/>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('pt-photo-input').click()">📤 Upload Photo</button>
+              <button type="button" class="btn btn-danger btn-sm" onclick="removePtPhoto()">✕ Remove</button>
+            </div>
+            <div id="pt-photo-status" style="font-size:12px;color:var(--text2);margin-top:6px"></div>
+          </div>
+        </div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="field"><label>Trip Name *</label><input id="pt-title" placeholder="e.g. Goa Beaches"/></div>
-        <div class="field"><label>Emoji</label><input id="pt-emoji" placeholder="🏖️" maxlength="4"/></div>
+        <div class="field"><label>Emoji (fallback if no photo)</label><input id="pt-emoji" placeholder="🏖️" maxlength="4"/></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="field"><label>Cost</label><input id="pt-cost" placeholder="₹6,500"/></div>
@@ -716,6 +736,46 @@ async function loadPopularTrips() {
   }
 }
 
+async function handlePtPhotoSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('pt-photo-status');
+  statusEl.textContent = 'Uploading...';
+  try {
+    const ext = file.name.split('.').pop();
+    const path = `popular/${Date.now()}.${ext}`;
+    const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/trip-images/${path}`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${adminAccessToken || SUPABASE_KEY}`, 'x-upsert': 'true', 'Content-Type': file.type },
+      body: file
+    });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(uploadRes.status === 404 ? 'Storage bucket "trip-images" not found — create it first.' : errText);
+    }
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/trip-images/${path}`;
+    document.getElementById('pt-image-url').value = publicUrl;
+    statusEl.textContent = '✅ Uploaded!';
+    updatePtPreview();
+  } catch (e) {
+    statusEl.textContent = '❌ ' + e.message;
+  }
+}
+
+function removePtPhoto() {
+  document.getElementById('pt-image-url').value = '';
+  document.getElementById('pt-photo-status').textContent = '';
+  updatePtPreview();
+}
+
+function updatePtPhotoThumb() {
+  const url = document.getElementById('pt-image-url').value;
+  const img = document.getElementById('pt-photo-preview');
+  const empty = document.getElementById('pt-photo-preview-empty');
+  if (url) { img.src = url; img.style.display = 'block'; empty.style.display = 'none'; }
+  else { img.style.display = 'none'; empty.style.display = 'block'; }
+}
+
 function renderPopularTrips(trips) {
   const el = document.getElementById('popular-trips-table');
   if (!trips.length) { el.innerHTML = '<div class="empty"><div class="icon">🔥</div><p>No popular trips. Add your first one!</p></div>'; return; }
@@ -723,7 +783,7 @@ function renderPopularTrips(trips) {
     <tr><th>Order</th><th>Trip</th><th>Cost</th><th>Rating</th><th>Tag</th><th>Status</th><th>Actions</th></tr>
     ${trips.map(t => `<tr>
       <td style="color:var(--text2)">#${t.sort_order}</td>
-      <td><span style="font-size:20px;margin-right:8px">${t.emoji}</span><strong>${t.title}</strong></td>
+      <td>${t.image_url ? `<img src="${t.image_url}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;margin-right:8px;vertical-align:middle"/>` : `<span style="font-size:20px;margin-right:8px">${t.emoji}</span>`}<strong>${t.title}</strong></td>
       <td style="color:var(--green)">${t.cost}</td>
       <td>⭐ ${t.rating}</td>
       <td><span style="background:${t.color};color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700">${t.tag}</span></td>
@@ -740,9 +800,9 @@ function renderPopularPreview(trips) {
   const el = document.getElementById('popular-trips-preview');
   if (!trips.length) { el.innerHTML = '<p style="color:var(--text2);font-size:13px">No trips to preview</p>'; return; }
   el.innerHTML = trips.filter(t => t.is_active).map(t => `
-    <div class="trip-preview-card" style="background:${t.bg}">
+    <div class="trip-preview-card ${t.image_url ? 'has-photo' : ''}" style="${t.image_url ? `background-image:url('${t.image_url}')` : `background:${t.bg}`}">
       <span class="trip-preview-tag" style="background:${t.color}">${t.tag}</span>
-      <span class="trip-preview-emoji">${t.emoji}</span>
+      ${t.image_url ? '' : `<span class="trip-preview-emoji">${t.emoji}</span>`}
       <div class="trip-preview-title">${t.title}</div>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="color:rgba(255,255,255,0.9);font-size:11px">⭐ ${t.rating}</span>
@@ -755,6 +815,9 @@ function renderPopularPreview(trips) {
 function openPopularTripModal(trip = null) {
   document.getElementById('popular-trip-modal-title').textContent = trip ? 'Edit Popular Trip' : 'Add Popular Trip';
   document.getElementById('pt-id').value = trip?.id || '';
+  document.getElementById('pt-image-url').value = trip?.image_url || '';
+  document.getElementById('pt-photo-status').textContent = '';
+  updatePtPhotoThumb();
   document.getElementById('pt-title').value = trip?.title || '';
   document.getElementById('pt-emoji').value = trip?.emoji || '🏖️';
   document.getElementById('pt-cost').value = trip?.cost || '₹5,000';
@@ -776,11 +839,14 @@ function openPopularTripModal(trip = null) {
 function updatePtPreview() {
   const bg = document.getElementById('pt-bg').value || '#0e7490';
   const color = document.getElementById('pt-color').value || '#06b6d4';
+  const imageUrl = document.getElementById('pt-image-url').value;
   const preview = document.getElementById('pt-preview');
-  preview.style.background = bg;
+  updatePtPhotoThumb();
+  preview.className = 'trip-preview-card' + (imageUrl ? ' has-photo' : '');
+  preview.style.background = imageUrl ? `url('${imageUrl}') center/cover` : bg;
   preview.innerHTML = `
     <span class="trip-preview-tag" style="background:${color}">${document.getElementById('pt-tag').value || 'TRENDING'}</span>
-    <span class="trip-preview-emoji">${document.getElementById('pt-emoji').value || '🏖️'}</span>
+    ${imageUrl ? '' : `<span class="trip-preview-emoji">${document.getElementById('pt-emoji').value || '🏖️'}</span>`}
     <div class="trip-preview-title">${document.getElementById('pt-title').value || 'Trip Name'}</div>
     <div style="display:flex;justify-content:space-between;align-items:center">
       <span style="color:rgba(255,255,255,0.9);font-size:11px">⭐ ${document.getElementById('pt-rating').value || '4.8'}</span>
@@ -805,6 +871,7 @@ async function savePopularTrip() {
   if (!title) { showToast('Trip name required!', 'error'); return; }
   const body = {
     title,
+    image_url: document.getElementById('pt-image-url').value || null,
     emoji: document.getElementById('pt-emoji').value || '🏖️',
     cost: document.getElementById('pt-cost').value || '₹5,000',
     rating: document.getElementById('pt-rating').value || '4.8',
