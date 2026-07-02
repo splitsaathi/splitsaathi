@@ -31,3 +31,4 @@ export function useBills(groupId) {
     balances: getBalances(groupBills, profile?.id),
   };
 }
+

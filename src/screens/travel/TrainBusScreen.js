@@ -170,3 +170,4 @@ const styles = StyleSheet.create({
   },
   searchBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });
+

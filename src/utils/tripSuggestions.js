@@ -67,3 +67,4 @@ export const getNearbyTrips = (userLat, userLng, maxResults = 10) => {
     .sort((a, b) => a.distanceKm - b.distanceKm)
     .slice(0, maxResults);
 };
+

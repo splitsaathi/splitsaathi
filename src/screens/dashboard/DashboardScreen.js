@@ -554,7 +554,7 @@ export default function DashboardScreen({ navigation }) {
                   <View style={{ backgroundColor:'#fff', padding:12, borderRadius:16, borderWidth:1, borderColor: COLORS.borderLight }}>
                     <Image
                       source={{
-                        uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${settleModal.upiId}&pn=${settleModal.name}&am=${settleModal.amount.toFixed(2)}&cu=INR&tn=SplitSaathi`)}`
+                        uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${settleModal.upiId}&pn=${settleModal.name}&am=${settleModal.amount.toFixed(2)}&cu=INR&tn=Splitsathi`)}`
                       }}
                       style={{ width:200, height:200 }}
                       resizeMode="contain"
@@ -569,7 +569,7 @@ export default function DashboardScreen({ navigation }) {
                 <TouchableOpacity
                   style={{ backgroundColor: '#10b981', borderRadius:14, padding:16, alignItems:'center', marginBottom:12 }}
                   onPress={() => {
-                    const upiUrl = `upi://pay?pa=${settleModal.upiId}&pn=${settleModal.name}&am=${settleModal.amount.toFixed(2)}&cu=INR&tn=SplitSaathi`;
+                    const upiUrl = `upi://pay?pa=${settleModal.upiId}&pn=${settleModal.name}&am=${settleModal.amount.toFixed(2)}&cu=INR&tn=Splitsathi`;
                     if (Platform.OS === 'web') {
                       window.open(upiUrl, '_blank');
                     } else {
@@ -685,3 +685,4 @@ const s = StyleSheet.create({
   popularTripBtn:     { backgroundColor:'rgba(255,255,255,0.2)', borderRadius:8, paddingVertical:6, alignItems:'center', marginTop:10, borderWidth:1, borderColor:'rgba(255,255,255,0.3)' },
   popularTripBtnText: { color:'#fff', fontWeight:'700', fontSize:12 },
 });
+

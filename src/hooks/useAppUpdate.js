@@ -15,7 +15,7 @@ export function useAppUpdate() {
         await Updates.fetchUpdateAsync();
         Alert.alert(
           "Update Available!",
-          "SplitSaathi ka naya version aa gaya. Restart karein?",
+          "Splitsathi ka naya version aa gaya. Restart karein?",
           [
             { text: "Baad mein", style: "cancel" },
             { text: "Abhi Update Karo", onPress: async () => await Updates.reloadAsync() }
@@ -27,3 +27,4 @@ export function useAppUpdate() {
     }
   };
 }
+

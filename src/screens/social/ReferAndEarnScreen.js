@@ -19,7 +19,7 @@ export default function ReferAndEarnScreen({ navigation }) {
   const rewardPoints = 150;
 
   const referralCode = `SPLIT${(profile?.name || 'USER').slice(0,4).toUpperCase()}${1234}`;
-  const referralLink = `https://splitsaathi.com/join?ref=${referralCode}`;
+  const referralLink = `https://Splitsathi.com/join?ref=${referralCode}`;
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(referralLink);
@@ -29,7 +29,7 @@ export default function ReferAndEarnScreen({ navigation }) {
 
   const handleShare = async () => {
     await Share.share({
-      message: `Hey! Join me on SplitSaathi — the best app for splitting expenses!\nUse my code ${referralCode} and we both get ₹50!\n\n${referralLink}`,
+      message: `Hey! Join me on Splitsathi — the best app for splitting expenses!\nUse my code ${referralCode} and we both get ₹50!\n\n${referralLink}`,
     });
   };
 
@@ -93,7 +93,7 @@ export default function ReferAndEarnScreen({ navigation }) {
             </View>
             <View style={s.stepsCard}>
               <Text style={s.label}>HOW IT WORKS</Text>
-              {['Share your referral link','Friend signs up on SplitSaathi','Both get ₹50 reward points! 🎉'].map((t,i) => (
+              {['Share your referral link','Friend signs up on Splitsathi','Both get ₹50 reward points! 🎉'].map((t,i) => (
                 <View key={i} style={s.stepRow}>
                   <View style={s.stepBadge}><Text style={{ color:'#fff', fontWeight:'700', fontSize:12 }}>{i+1}</Text></View>
                   <Text style={s.stepText}>{t}</Text>
@@ -178,3 +178,4 @@ const s = StyleSheet.create({
   histCard:   { flexDirection:'row', alignItems:'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.md, padding: SPACING.md, marginBottom:8, borderWidth:1, borderColor: COLORS.borderLight },
   histAvatar: { width:38, height:38, borderRadius:19, backgroundColor: COLORS.primaryLight, alignItems:'center', justifyContent:'center' },
 });
+

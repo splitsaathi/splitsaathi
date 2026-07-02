@@ -29,3 +29,4 @@ export const validateSignupForm = ({ name, email, password, confirm }) => {
   if (password !== confirm) return 'Passwords match nahi kar rahe!';
   return null;
 };
+

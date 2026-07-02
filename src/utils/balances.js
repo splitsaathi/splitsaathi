@@ -106,3 +106,4 @@ export const myShareOnBill = (bill, userId) => {
   if (iOwe)  return { amount: pp, type: 'owe' };
   return { amount: 0, type: null };
 };
+

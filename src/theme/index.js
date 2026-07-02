@@ -128,3 +128,4 @@ export const GROUP_HEADER_COLORS = {
 };
 
 export const CATEGORIES = Object.keys(CAT_ICONS);
+

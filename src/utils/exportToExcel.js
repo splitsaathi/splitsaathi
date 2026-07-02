@@ -85,7 +85,7 @@ export const exportGroupToExcel = async ({ group, bills, members, profile }) => 
   // ── Write to file ──────────────────────────────────────────────────────────
   const wbout   = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
   const safeName = group.name.replace(/[^a-zA-Z0-9]/g, '_');
-  const fileName = `SplitSaathi_${safeName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  const fileName = `Splitsathi_${safeName}_${new Date().toISOString().split('T')[0]}.xlsx`;
   const filePath = `${FileSystem.cacheDirectory}${fileName}`;
 
   await FileSystem.writeAsStringAsync(filePath, wbout, {
@@ -101,7 +101,7 @@ export const shareExcelFile = async (filePath) => {
   if (!canShare) throw new Error('Sharing not available on this device');
   await Sharing.shareAsync(filePath, {
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    dialogTitle: 'Share SplitSaathi Report',
+    dialogTitle: 'Share Splitsathi Report',
   });
 };
 
@@ -112,8 +112,9 @@ export const emailExcelFile = async ({ filePath, fileName, groupName, userEmail 
 
   await MailComposer.composeAsync({
     recipients:  [userEmail],
-    subject:     `SplitSaathi — ${groupName} Expense Report`,
-    body:        `Hi!\n\nPlease find attached the expense report for "${groupName}" from SplitSaathi.\n\nThe report includes:\n• All bills\n• Balance summary\n• Member-wise totals\n\nGenerated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\nSplitSaathi — Split expenses with friends 💸`,
+    subject:     `Splitsathi — ${groupName} Expense Report`,
+    body:        `Hi!\n\nPlease find attached the expense report for "${groupName}" from Splitsathi.\n\nThe report includes:\n• All bills\n• Balance summary\n• Member-wise totals\n\nGenerated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\nSplitsathi — Split expenses with friends 💸`,
     attachments: [filePath],
   });
 };
+

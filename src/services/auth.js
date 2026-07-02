@@ -23,13 +23,13 @@ export const signOut = async () => {
 
 export const resetPassword = async (email) => {
   return supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'splitsaathi://reset-password',
+    redirectTo: 'Splitsathi://reset-password',
   });
 };
 
 export const signInWithGoogle = async () => {
   const redirectUrl = Platform.OS === 'web'
-    ? 'https://splitsaathi.com'
+    ? 'https://Splitsathi.com'
     : Linking.createURL('/auth/callback');
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -78,3 +78,4 @@ export const onAuthStateChange = (callback) => {
   const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
   return subscription;
 };
+

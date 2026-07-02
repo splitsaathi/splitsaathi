@@ -17,3 +17,4 @@ export function useGroups() {
     createGroup: (name, icon, memberIds) => createGroup(name, icon, profile.id, memberIds),
   };
 }
+

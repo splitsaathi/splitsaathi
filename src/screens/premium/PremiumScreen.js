@@ -56,7 +56,7 @@ export default function PremiumScreen({ navigation }) {
         {/* Hero */}
         <View style={s.heroCard}>
           <Text style={{ fontSize:48, marginBottom: SPACING.sm }}>💎</Text>
-          <Text style={s.heroTitle}>SplitSaathi Premium</Text>
+          <Text style={s.heroTitle}>Splitsathi Premium</Text>
           <Text style={s.heroSub}>Unlock all features. Split smarter, settle faster.</Text>
         </View>
 
@@ -135,3 +135,4 @@ const s = StyleSheet.create({
   upgradeBtn:     { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, padding:16, alignItems:'center', marginBottom: SPACING.sm },
   upgradeBtnText: { color:'#fff', fontWeight:'700', fontSize:15 },
 });
+

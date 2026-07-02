@@ -82,7 +82,7 @@ export default function SettleUpSheet({ visible, amount, fromUser, toUser, billI
   const handlePay = async () => {
     setLoading(true); setError('');
     if (method === 'upi' && toUser?.upi_id) {
-      const upiUrl = `upi://pay?pa=${toUser.upi_id}&pn=${encodeURIComponent(toUser.name)}&am=${amount.toFixed(2)}&cu=INR&tn=SplitSaathi`;
+      const upiUrl = `upi://pay?pa=${toUser.upi_id}&pn=${encodeURIComponent(toUser.name)}&am=${amount.toFixed(2)}&cu=INR&tn=Splitsathi`;
       try { await Linking.openURL(upiUrl); } catch (e) { console.log('UPI app not found'); }
     }
     try {
@@ -161,7 +161,7 @@ export default function SettleUpSheet({ visible, amount, fromUser, toUser, billI
                   <View style={s.qrScanRow}>
                     <TouchableOpacity style={s.scanAnyBtn}
                       onPress={() => {
-                        const upiUrl = `upi://pay?pa=${toUser.upi_id}&pn=${encodeURIComponent(toUser.name)}&am=${amount.toFixed(2)}&cu=INR&tn=SplitSaathi`;
+                        const upiUrl = `upi://pay?pa=${toUser.upi_id}&pn=${encodeURIComponent(toUser.name)}&am=${amount.toFixed(2)}&cu=INR&tn=Splitsathi`;
                         Linking.openURL(upiUrl).catch(() =>
                           Alert.alert('UPI App not found', 'Please install PhonePe, GPay or Paytm to pay via UPI.')
                         );
@@ -246,3 +246,4 @@ const s = StyleSheet.create({
   noUpiBox:  { backgroundColor: COLORS.surfaceHigh, borderRadius: RADIUS.md, padding: SPACING.md, borderWidth:1, borderColor: COLORS.borderLight, marginTop: SPACING.sm },
   noUpiText: { color: COLORS.textMuted, fontSize:13, lineHeight:20 },
 });
+

@@ -188,3 +188,4 @@ const styles = StyleSheet.create({
   reminderBtn: { borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, padding: 14, alignItems: 'center', marginTop: SPACING.md },
   reminderBtnText: { color: COLORS.textSub, fontWeight: '600' },
 });
+

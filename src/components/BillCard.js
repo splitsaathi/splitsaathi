@@ -63,3 +63,4 @@ const styles = StyleSheet.create({
   label:    { fontSize:11, fontWeight:'600' },
   amount:   { fontSize:15, fontWeight:'700', marginTop:2 },
 });
+

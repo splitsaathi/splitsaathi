@@ -161,3 +161,4 @@ const styles = StyleSheet.create({
   removeBtn:  { backgroundColor: 'rgba(239,68,68,0.1)', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
   removeBtnText: { color: '#ef4444', fontSize: 12, fontWeight: '700' },
 });
+

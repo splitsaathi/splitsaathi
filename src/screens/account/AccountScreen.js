@@ -107,7 +107,7 @@ export default function AccountScreen({ navigation }) {
           <Text style={s.logoutText}>🚪  Logout</Text>
         </TouchableOpacity>
 
-        <Text style={s.version}>SplitSaathi v1.0.0 · Heritage Edition</Text>
+        <Text style={s.version}>Splitsathi v1.0.0 · Heritage Edition</Text>
         <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
@@ -152,3 +152,4 @@ const s = StyleSheet.create({
   logoutText: { color: COLORS.owe, fontWeight: '700', fontSize: 16 },
   version:    { color: COLORS.textMuted, fontSize: 11, textAlign: 'center', marginBottom: SPACING.md },
 });
+

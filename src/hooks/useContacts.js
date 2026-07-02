@@ -24,3 +24,4 @@ export function useContacts() {
 
   return { permission, contacts, loading, requestAndLoad, search };
 }
+

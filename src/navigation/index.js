@@ -193,7 +193,7 @@ export default function AppNavigator() {
   if (loading) return (
     <View style={{ flex:1, backgroundColor: COLORS.bg, alignItems:'center', justifyContent:'center' }}>
       <Text style={{ fontSize:52, marginBottom:16 }}>💸</Text>
-      <Text style={{ color: COLORS.primary, fontSize:26, fontWeight:'800', marginBottom:4 }}>SplitSaathi</Text>
+      <Text style={{ color: COLORS.primary, fontSize:26, fontWeight:'800', marginBottom:4 }}>Splitsathi</Text>
       <Text style={{ color: COLORS.textMuted, fontSize:13, marginBottom:24 }}>Split expenses with friends</Text>
       <ActivityIndicator size="large" color={COLORS.primary} />
     </View>
@@ -210,3 +210,4 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
+

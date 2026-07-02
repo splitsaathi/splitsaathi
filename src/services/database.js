@@ -151,3 +151,4 @@ export const subscribeToGroups = (userId, onUpdate) => {
     .subscribe();
   return () => supabase.removeChannel(channel);
 };
+

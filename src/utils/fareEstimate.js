@@ -61,7 +61,7 @@ export const geocodePlace = async (query) => {
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=in`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'SplitSaathiApp/1.0' },
+      headers: { 'User-Agent': 'SplitsathiApp/1.0' },
     });
     const data = await res.json();
     if (!data?.length) return null;
@@ -97,3 +97,4 @@ export const getUberStoreLink = (platform) => {
     ? 'https://apps.apple.com/app/id368677368'
     : 'https://play.google.com/store/apps/details?id=com.ubercab';
 };
+

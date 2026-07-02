@@ -167,3 +167,4 @@ const s = StyleSheet.create({
   createBtn:  { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, padding: 15, alignItems: 'center' },
   createBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });
+

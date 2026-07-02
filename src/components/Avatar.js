@@ -24,3 +24,4 @@ const styles = StyleSheet.create({
   circle: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.12)' },
   letter: { color: '#fff', fontWeight: '700' },
 });
+

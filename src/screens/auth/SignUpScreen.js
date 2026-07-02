@@ -176,3 +176,4 @@ const s = StyleSheet.create({
   terms:        { color: COLORS.textDisabled, fontSize: 12, textAlign: 'center', lineHeight: 18 },
   termsLink:    { color: COLORS.textMuted, textDecorationLine: 'underline' },
 });
+

@@ -33,7 +33,7 @@ export const registerForPushNotifications = async (userId) => {
   // Android channel
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name:             'SplitSaathi',
+      name:             'Splitsathi',
       importance:       Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor:       '#10b981',
@@ -99,3 +99,4 @@ export const addNotificationListeners = (onReceive, onResponse) => {
   const res = Notifications.addNotificationResponseReceivedListener(onResponse);
   return () => { rcv.remove(); res.remove(); };
 };
+

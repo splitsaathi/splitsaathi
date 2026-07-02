@@ -188,3 +188,4 @@ const styles = StyleSheet.create({
 
   expandHint: { color: COLORS.primaryLight, fontSize: 11, fontWeight: '600', marginTop: 8, textAlign: 'center' },
 });
+

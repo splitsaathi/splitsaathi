@@ -41,7 +41,7 @@ export default function LoginScreen({ navigation }) {
         {/* Logo */}
         <View style={s.logoWrap}>
           <Text style={s.logoEmoji}>💸</Text>
-          <Text style={s.logoTitle}>SplitSaathi</Text>
+          <Text style={s.logoTitle}>Splitsathi</Text>
           <Text style={s.logoSub}>Split expenses with friends</Text>
         </View>
 
@@ -155,3 +155,4 @@ const s = StyleSheet.create({
 
   error:          { color: COLORS.danger, fontSize: 13, marginBottom: SPACING.sm },
 });
+

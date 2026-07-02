@@ -60,3 +60,4 @@ const styles = StyleSheet.create({
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   scroll: { padding: SPACING.md, paddingBottom: 100 },
 });
+

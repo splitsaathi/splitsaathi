@@ -41,3 +41,4 @@ export const getInitials = (name = '') => {
 };
 
 export const firstName = (name = '') => name.trim().split(' ')[0];
+

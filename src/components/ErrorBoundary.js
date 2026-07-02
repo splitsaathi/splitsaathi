@@ -13,7 +13,7 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    console.error('SplitSaathi crash:', error, info);
+    console.error('Splitsathi crash:', error, info);
     // Production mein yahan Sentry/Crashlytics log bhejo
   }
 
@@ -45,3 +45,4 @@ const styles = StyleSheet.create({
   button:    { backgroundColor: COLORS.primary, borderRadius: RADIUS.lg, paddingHorizontal: 28, paddingVertical: 14 },
   buttonText:{ color: '#fff', fontWeight: '700', fontSize: 16 },
 });
+

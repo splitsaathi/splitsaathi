@@ -22,3 +22,4 @@ const styles = StyleSheet.create({
   btn:     { backgroundColor: COLORS.primary, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 13 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
+

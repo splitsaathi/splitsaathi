@@ -225,3 +225,4 @@ const s = StyleSheet.create({
   journalBtn:        { marginHorizontal: SPACING.md, backgroundColor: COLORS.goldLight, borderRadius: RADIUS.md, padding:15, alignItems:'center' },
   journalBtnText:    { color:'#78350f', fontWeight:'700', fontSize:15 },
 });
+

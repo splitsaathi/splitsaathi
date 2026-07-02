@@ -163,3 +163,4 @@ const s = StyleSheet.create({
   memFeeling: { color: COLORS.textSub, fontSize:13, marginBottom:6 },
   memNotes:   { color: COLORS.text, fontSize:14, lineHeight:20 },
 });
+

@@ -144,3 +144,4 @@ const styles = StyleSheet.create({
   actAmt:     { fontSize: 15, fontWeight: '700' },
   empty:      { alignItems: 'center', padding: 40 },
 });
+

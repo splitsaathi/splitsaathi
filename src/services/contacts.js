@@ -62,7 +62,7 @@ export const getPhoneContacts = async () => {
 
 // ── WhatsApp invite ───────────────────────────────────────────────────────────
 export const sendWhatsAppInvite = (phone, inviterName) => {
-  const msg = `Hey! I'm ${inviterName}. I use SplitSaathi — the best app for splitting expenses! Join here: https://splitsaathi.com`;
+  const msg = `Hey! I'm ${inviterName}. I use Splitsathi — the best app for splitting expenses! Join here: https://Splitsathi.com`;
 
   if (Platform.OS === 'web') {
     const url = `https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`;
@@ -78,7 +78,7 @@ export const sendWhatsAppInvite = (phone, inviterName) => {
 // ── SMS invite ────────────────────────────────────────────────────────────────
 export const sendSMSInvite = (phone, inviterName) => {
   const body = encodeURIComponent(
-    `${inviterName} invited you to SplitSaathi! Split expenses with friends easily. Download: https://splitsaathi.com`
+    `${inviterName} invited you to Splitsathi! Split expenses with friends easily. Download: https://Splitsathi.com`
   );
 
   if (Platform.OS === 'web') {
@@ -90,9 +90,10 @@ export const sendSMSInvite = (phone, inviterName) => {
 
 // ── Email invite ──────────────────────────────────────────────────────────────
 export const sendEmailInvite = (email, inviterName) => {
-  const subject = encodeURIComponent(`${inviterName} invited you to SplitSaathi!`);
+  const subject = encodeURIComponent(`${inviterName} invited you to Splitsathi!`);
   const body    = encodeURIComponent(
-    `Hi!\n\n${inviterName} has invited you to SplitSaathi.\n\nSplitSaathi makes it easy to split expenses with friends.\n\nDownload here: https://splitsaathi.com\n\nThanks!`
+    `Hi!\n\n${inviterName} has invited you to Splitsathi.\n\nSplitsathi makes it easy to split expenses with friends.\n\nDownload here: https://Splitsathi.com\n\nThanks!`
   );
   Linking.openURL(`mailto:${email}?subject=${subject}&body=${body}`);
 };
+

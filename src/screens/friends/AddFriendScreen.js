@@ -32,7 +32,7 @@ export default function AddFriendScreen({ route, navigation }) {
   const [emailInv, setEmailInv] = useState('');
   const [copied,   setCopied]   = useState(false);
 
-  const inviteLink = `https://splitsaathi.com/join/${profile?.id || 'invite'}`;
+  const inviteLink = `https://Splitsathi.com/join/${profile?.id || 'invite'}`;
 
   const doSearch = async (searchQuery) => {
     const q = (searchQuery || query).trim();
@@ -188,8 +188,8 @@ export default function AddFriendScreen({ route, navigation }) {
             {/* Agar email se nahi mila to invite option */}
             {query.includes('@') && !loading && results.length === 0 && query.length > 5 && (
               <View style={styles.inviteCard}>
-                <Text style={styles.inviteTitle}>Invite karo SplitSaathi pe!</Text>
-                <Text style={styles.inviteDesc}>{query} abhi SplitSaathi pe nahi hai.</Text>
+                <Text style={styles.inviteTitle}>Invite karo Splitsathi pe!</Text>
+                <Text style={styles.inviteDesc}>{query} abhi Splitsathi pe nahi hai.</Text>
                 <TouchableOpacity
                   style={styles.inviteBtn}
                   onPress={() => {
@@ -222,7 +222,7 @@ export default function AddFriendScreen({ route, navigation }) {
                 <Text style={{ fontSize: 48, marginBottom: 16 }}>📱</Text>
                 <Text style={styles.permTitle}>Phone Contacts Access</Text>
                 <Text style={styles.permDesc}>
-                  Find friends from your contacts and invite them to SplitSaathi.
+                  Find friends from your contacts and invite them to Splitsathi.
                 </Text>
                 <TouchableOpacity style={styles.permBtn} onPress={loadContacts} disabled={loading}>
                   {loading
@@ -358,7 +358,7 @@ export default function AddFriendScreen({ route, navigation }) {
               <Text style={{ color: COLORS.textSub, fontSize: 13, lineHeight: 20 }}>
                 <Text style={{ color: COLORS.text, fontWeight: '700' }}>{profile?.name}</Text>
                 {' '}invited you{' '}
-                <Text style={{ color: COLORS.primary, fontWeight: '700' }}>on SplitSaathi</Text>.{'\n'}
+                <Text style={{ color: COLORS.primary, fontWeight: '700' }}>on Splitsathi</Text>.{'\n'}
                 Join now to split expenses easily! 🎉{'\n'}
                 <Text style={{ color: COLORS.primary }}>{inviteLink}</Text>
               </Text>
@@ -453,3 +453,4 @@ const styles = StyleSheet.create({
   previewBox:     { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, padding: 14, marginBottom: SPACING.md, borderWidth: 1, borderColor: COLORS.border },
   previewLabel:   { color: COLORS.textMuted, fontSize: 11, marginBottom: 6, textTransform: 'uppercase' },
 });
+

@@ -55,7 +55,7 @@ export default function TravelHubScreen({ navigation }) {
 
         <View style={styles.noteBox}>
           <Text style={styles.noteText}>
-            ℹ️ SplitSaathi doesn't book directly. We take you to the right place (app or website) where you can see real, live prices and book.
+            ℹ️ Splitsathi doesn't book directly. We take you to the right place (app or website) where you can see real, live prices and book.
           </Text>
         </View>
       </ScrollView>
@@ -91,3 +91,4 @@ const styles = StyleSheet.create({
   },
   noteText: { color: COLORS.textMuted, fontSize: 12, lineHeight: 18 },
 });
+

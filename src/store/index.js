@@ -140,3 +140,4 @@ export const useFriendStore = create((set) => ({
     return { error };
   },
 }));
+
