@@ -546,7 +546,25 @@ let allUsers = [], allTrips = [], allPopularTrips = [], allAnnouncements = [];
 let chartSignups, chartStats;
 let adminAccessToken = null;
 
-async function db(table, options = {}) {
+async function refreshAdminToken() {
+  const refreshToken = sessionStorage.getItem('admin_refresh_token');
+  if (!refreshToken) return false;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.access_token) return false;
+    adminAccessToken = data.access_token;
+    sessionStorage.setItem('admin_access_token', data.access_token);
+    sessionStorage.setItem('admin_refresh_token', data.refresh_token);
+    return true;
+  } catch (e) { return false; }
+}
+
+async function db(table, options = {}, _retried = false) {
   let url = `${SUPABASE_URL}/rest/v1/${table}`;
   const params = [];
   if (options.select) params.push(`select=${options.select}`);
@@ -557,6 +575,14 @@ async function db(table, options = {}) {
   const authToken = adminAccessToken || SUPABASE_KEY;
   const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json', 'Prefer': options.prefer || 'return=representation' };
   const res = await fetch(url, { method: options.method || 'GET', headers, body: options.body ? JSON.stringify(options.body) : undefined });
+  // Session expired mid-use: silently refresh the token once and retry the same request
+  if (res.status === 401 && adminAccessToken && !_retried) {
+    const refreshed = await refreshAdminToken();
+    if (refreshed) return db(table, options, true);
+    showToast('Session expired. Please log in again.', 'error');
+    logout();
+    throw new Error('Session expired');
+  }
   if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || 'API Error'); }
   if (res.status === 204) return null;
   return res.json();
