@@ -6,7 +6,7 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "build:web": "expo export --platform web && node fix-index.js && node copy-admin.js",
+    "build:web": "expo export --platform web && node copy-admin.js",
     "build:android": "eas build --platform android --profile production",
     "build:ios": "eas build --platform ios --profile production",
     "build:preview": "eas build --platform all --profile preview",
