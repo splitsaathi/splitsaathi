@@ -7,6 +7,7 @@ import Avatar from '../../components/Avatar';
 import ReminderBadge from '../../components/ReminderBadge';
 import { signOut } from '../../services/auth';
 import { getProfile } from '../../services/database';
+import { supabase } from '../../services/supabase';
 
 function BarChart({ data }) {
   const maxVal = Math.max(...data.map(d => d.value), 1);
@@ -50,7 +51,23 @@ export default function DashboardScreen({ navigation }) {
   const { friends, loadFriends }             = useFriendStore();
   const [refreshing,   setRefreshing]         = useState(false);
   const [chartType,    setChartType]          = useState('bar');
-  const [settleModal,  setSettleModal]        = useState(null); // { name, upiId, amount }
+  const [settleModal,  setSettleModal]        = useState(null);
+  const [popularTrips, setPopularTrips]       = useState([]);
+
+  // Fetch popular trips from Supabase
+  useEffect(() => {
+    const fetchPopularTrips = async () => {
+      try {
+        const { data } = await supabase
+          .from('popular_trips')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+        if (data && data.length > 0) setPopularTrips(data);
+      } catch (e) { console.log('Popular trips fetch error:', e); }
+    };
+    fetchPopularTrips();
+  }, []); // { name, upiId, amount }
 
   useEffect(() => {
     if (profile?.id) { loadGroups(profile.id); loadFriends(profile.id); }
@@ -215,47 +232,30 @@ export default function DashboardScreen({ navigation }) {
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {[
+            {(popularTrips.length > 0 ? popularTrips : [
               { title:'Goa Beaches',        emoji:'🏖️', cost:'₹6,500',  rating:'4.9', tag:'TRENDING',   color:'#06b6d4', bg:'#0e7490' },
               { title:'Manali Snow Peaks',  emoji:'🏔️', cost:'₹9,800',  rating:'4.9', tag:'BESTSELLER', color:'#8b5cf6', bg:'#6d28d9' },
               { title:'Jim Corbett Safari', emoji:'🐯', cost:'₹12,500', rating:'4.9', tag:'WILDLIFE',    color:'#10b981', bg:'#065f46' },
               { title:'Rajasthan Heritage', emoji:'🏰', cost:'₹7,500',  rating:'4.8', tag:'CULTURE',     color:'#f59e0b', bg:'#92400e' },
               { title:'Kerala Backwaters',  emoji:'🚣', cost:'₹9,000',  rating:'4.8', tag:'PEACEFUL',    color:'#3b82f6', bg:'#1e40af' },
               { title:'Leh Ladakh',         emoji:'🏍️', cost:'₹20,000', rating:'4.9', tag:'ADVENTURE',   color:'#ef4444', bg:'#991b1b' },
-              { title:'Andaman Islands',    emoji:'🏝️', cost:'₹22,000', rating:'4.9', tag:'PREMIUM',     color:'#06b6d4', bg:'#164e63' },
-              { title:'Varanasi Spiritual', emoji:'🕌', cost:'₹3,500',  rating:'4.8', tag:'SPIRITUAL',   color:'#a855f7', bg:'#6b21a8' },
-            ].map((trip, i) => (
+            ]).map((trip, i) => (
               <TouchableOpacity
                 key={i}
                 style={[s.popularTripCard, { backgroundColor: trip.bg }]}
                 onPress={() => navigation.navigate('TripDiscovery')}
                 activeOpacity={0.85}
               >
-                {/* Tag Badge */}
                 <View style={[s.popularTripTag, { backgroundColor: trip.color }]}>
                   <Text style={s.popularTripTagText}>{trip.tag}</Text>
                 </View>
-
-                {/* Emoji */}
                 <Text style={s.popularTripEmoji}>{trip.emoji}</Text>
-
-                {/* Title */}
                 <Text style={s.popularTripTitle} numberOfLines={2}>{trip.title}</Text>
-
-                {/* Rating & Price */}
                 <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginTop:8 }}>
-                  <View style={{ flexDirection:'row', alignItems:'center', gap:3 }}>
-                    <Text style={{ color:'#fbbf24', fontSize:11 }}>⭐</Text>
-                    <Text style={{ color:'rgba(255,255,255,0.9)', fontSize:11, fontWeight:'700' }}>{trip.rating}</Text>
-                  </View>
+                  <Text style={{ color:'rgba(255,255,255,0.9)', fontSize:11 }}>⭐ {trip.rating}</Text>
                   <Text style={s.popularTripPrice}>{trip.cost}</Text>
                 </View>
-
-                {/* Book Now */}
-                <TouchableOpacity
-                  style={s.popularTripBtn}
-                  onPress={() => navigation.navigate('TripDiscovery')}
-                >
+                <TouchableOpacity style={s.popularTripBtn} onPress={() => navigation.navigate('TripDiscovery')}>
                   <Text style={s.popularTripBtnText}>Explore →</Text>
                 </TouchableOpacity>
               </TouchableOpacity>
