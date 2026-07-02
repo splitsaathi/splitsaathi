@@ -5,19 +5,19 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "scheme": "splitsaathi",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0f172a"
+      "backgroundColor": "#003527"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourcompany.splitsaathi",
+      "bundleIdentifier": "com.splitsaathi.app",
       "buildNumber": "1",
       "infoPlist": {
         "NSContactsUsageDescription": "Apne contacts mein se friends dhundhne ke liye.",
@@ -43,7 +43,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0f172a"
       },
-      "package": "com.yourcompany.splitsaathi",
+      "package": "com.splitsaathi.app",
       "versionCode": 1,
       "permissions": [
         "android.permission.READ_CONTACTS",
@@ -58,9 +58,7 @@
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.WRITE_CONTACTS",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "intentFilters": [
         {
@@ -115,16 +113,22 @@
     "extra": {
       "supabaseUrl": "https://bmhgnbvaufeafhennvaj.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtaGduYnZhdWZlYWZoZW5udmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI4MTcsImV4cCI6MjA5NzU0ODgxN30.ZQXBEI23RMG5qIJAmGdKvcgPciPj2Jlpyd3XqSRSRpc",
-      "razorpayKeyId": "YOUR_RAZORPAY_KEY_ID",
-      "eas": {
-        "projectId": "533eb29d-8618-4ec1-b893-f7fcaaeb5650"
-      }
+      "razorpayKeyId": "YOUR_RAZORPAY_KEY_ID"
     },
     "owner": "splitsaathi",
     "web": {
       "bundler": "metro",
-      "output": "single",
-      "favicon": "./assets/images/icon.png"
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/your-project-id",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }
