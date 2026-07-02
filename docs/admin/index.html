@@ -318,6 +318,10 @@
               </div>
             </div>
           </div>
+          <div class="table-card" style="margin-top:16px">
+            <div class="table-header"><h3>Recent Notifications</h3></div>
+            <div id="notif-history"><div class="loading"><div class="spinner"></div><p>Loading...</p></div></div>
+          </div>
         </div>
 
         <!-- ANNOUNCEMENTS -->
@@ -515,11 +519,10 @@
 <script>
 const SUPABASE_URL = 'https://bmhgnbvaufeafhennvaj.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtaGduYnZhdWZlYWZoZW5udmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI4MTcsImV4cCI6MjA5NzU0ODgxN30.ZQXBEI23RMG5qIJAmGdKvcgPciPj2Jlpyd3XqSRSRpc';
-const ADMIN_EMAIL = 'admin@Splitsathi.com';
-const ADMIN_PASSWORD = 'Splitsathi@Admin2024';
 
-let allUsers = [], allTrips = [], allPopularTrips = [], announcements = [];
+let allUsers = [], allTrips = [], allPopularTrips = [], allAnnouncements = [];
 let chartSignups, chartStats;
+let adminAccessToken = null;
 
 async function db(table, options = {}) {
   let url = `${SUPABASE_URL}/rest/v1/${table}`;
@@ -529,27 +532,69 @@ async function db(table, options = {}) {
   if (options.order) params.push(`order=${options.order}`);
   if (options.limit) params.push(`limit=${options.limit}`);
   if (params.length) url += '?' + params.join('&');
-  const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': options.prefer || 'return=representation' };
+  const authToken = adminAccessToken || SUPABASE_KEY;
+  const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json', 'Prefer': options.prefer || 'return=representation' };
   const res = await fetch(url, { method: options.method || 'GET', headers, body: options.body ? JSON.stringify(options.body) : undefined });
   if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || 'API Error'); }
   if (res.status === 204) return null;
   return res.json();
 }
 
-function adminLogin() {
-  const email = document.getElementById('login-email').value;
+// ── SECURE LOGIN (Supabase Auth) ─────────────────────────────────────────────
+async function adminLogin() {
+  const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
   const err = document.getElementById('login-error');
+  const btn = document.querySelector('.btn-login');
   err.style.display = 'none';
-  if (email === ADMIN_EMAIL && pass === ADMIN_PASSWORD) { sessionStorage.setItem('admin_auth', '1'); showApp(); }
-  else { err.style.display = 'block'; }
+  if (!email || !pass) { err.textContent = 'Email and password required.'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  try {
+    // Step 1: authenticate against Supabase Auth (real password check, not stored in this file)
+    const authRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const authData = await authRes.json();
+    if (!authRes.ok || !authData.access_token) {
+      err.textContent = 'Invalid credentials. Try again.'; err.style.display = 'block'; return;
+    }
+    // Step 2: check this logged-in user is actually flagged as admin in profiles table
+    const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${authData.user.id}&select=id,name,email,is_admin`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${authData.access_token}` }
+    });
+    const profData = await profRes.json();
+    const profile = Array.isArray(profData) ? profData[0] : null;
+    if (!profile || profile.is_admin !== true) {
+      err.textContent = 'This account is not authorized as admin.'; err.style.display = 'block'; return;
+    }
+    adminAccessToken = authData.access_token;
+    sessionStorage.setItem('admin_access_token', authData.access_token);
+    sessionStorage.setItem('admin_refresh_token', authData.refresh_token);
+    sessionStorage.setItem('admin_name', profile.name || profile.email || 'Admin');
+    showApp();
+  } catch (e) {
+    err.textContent = 'Login failed: ' + e.message; err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
 }
 
-function logout() { sessionStorage.removeItem('admin_auth'); document.getElementById('app').style.display = 'none'; document.getElementById('login-screen').style.display = 'flex'; }
+function logout() {
+  sessionStorage.removeItem('admin_access_token');
+  sessionStorage.removeItem('admin_refresh_token');
+  sessionStorage.removeItem('admin_name');
+  adminAccessToken = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
 
 function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+  const nameEl = document.querySelector('.admin-info .name');
+  if (nameEl) nameEl.textContent = sessionStorage.getItem('admin_name') || 'Admin';
   updateClock(); setInterval(updateClock, 1000);
   loadDashboard();
 }
@@ -568,6 +613,8 @@ function showPage(id, el) {
   if (id === 'trips') loadTrips();
   if (id === 'groups') loadGroups();
   if (id === 'expenses') loadExpenses();
+  if (id === 'announcements') loadAnnouncements();
+  if (id === 'notifications') loadNotificationHistory();
   if (id === 'settings') loadDbInfo();
 }
 
@@ -794,7 +841,7 @@ async function deleteTrip(id) {
 // ── USERS ──────────────────────────────────────────────────────────────────
 async function loadUsers() {
   try {
-    const data = await db('profiles', { select: 'id,name,email,created_at', order: 'created_at.desc' });
+    const data = await db('profiles', { select: 'id,name,email,created_at,is_blocked', order: 'created_at.desc' });
     allUsers = data || [];
     renderUsers(allUsers);
     document.getElementById('user-count').textContent = `${allUsers.length} users`;
@@ -804,7 +851,37 @@ async function loadUsers() {
 function renderUsers(users) {
   const el = document.getElementById('users-table');
   if (!users.length) { el.innerHTML = '<div class="empty"><div class="icon">👥</div><p>No users found</p></div>'; return; }
-  el.innerHTML = `<table><tr><th>User</th><th>Email</th><th>Joined</th></tr>${users.map(u => `<tr><td><span class="user-avatar">${(u.name||'U')[0].toUpperCase()}</span>${u.name||'Unknown'}</td><td style="color:var(--text2)">${u.email||'-'}</td><td style="color:var(--text2)">${new Date(u.created_at).toLocaleDateString('en-IN')}</td></tr>`).join('')}</table>`;
+  el.innerHTML = `<table><tr><th>User</th><th>Email</th><th>Joined</th><th>Status</th><th>Actions</th></tr>${users.map(u => `<tr>
+    <td><span class="user-avatar">${(u.name||'U')[0].toUpperCase()}</span>${u.name||'Unknown'}</td>
+    <td style="color:var(--text2)">${u.email||'-'}</td>
+    <td style="color:var(--text2)">${new Date(u.created_at).toLocaleDateString('en-IN')}</td>
+    <td><span class="status ${u.is_blocked?'status-blocked':'status-active'}">${u.is_blocked?'Blocked':'Active'}</span></td>
+    <td style="display:flex;gap:6px">
+      ${u.is_blocked
+        ? `<button class="btn btn-primary btn-sm" onclick="unblockUser('${u.id}')">✅ Unblock</button>`
+        : `<button class="btn btn-warning btn-sm" onclick="blockUser('${u.id}')">🚫 Block</button>`}
+      <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">🗑️ Delete</button>
+    </td>
+  </tr>`).join('')}</table>`;
+}
+
+async function blockUser(id) {
+  showConfirm('Block User', 'Ye user app use nahi kar payega jab tak unblock na ho. Confirm?', async () => {
+    try { await db(`profiles?id=eq.${id}`, { method: 'PATCH', body: { is_blocked: true } }); showToast('User blocked'); loadUsers(); }
+    catch(e) { showToast('Error: ' + e.message, 'error'); }
+  });
+}
+
+async function unblockUser(id) {
+  try { await db(`profiles?id=eq.${id}`, { method: 'PATCH', body: { is_blocked: false } }); showToast('User unblocked'); loadUsers(); }
+  catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteUser(id) {
+  showConfirm('Delete User', 'Ye user profile permanently delete ho jaayegi. Ye action undo nahi ho sakta. Confirm?', async () => {
+    try { await db(`profiles?id=eq.${id}`, { method: 'DELETE' }); showToast('User deleted'); loadUsers(); }
+    catch(e) { showToast('Error: ' + e.message, 'error'); }
+  });
 }
 
 function filterUsers() {
@@ -855,18 +932,78 @@ async function sendNotification() {
   try {
     await db('admin_notifications', { method: 'POST', body: { title, body, target: document.getElementById('notif-target').value, sent_at: new Date().toISOString() } });
     showToast('🔔 Notification sent!');
+    document.getElementById('notif-title').value = ''; document.getElementById('notif-body').value = ''; updatePreview();
+    loadNotificationHistory();
   } catch(e) { showToast('Add "admin_notifications" table in Supabase first.', 'error'); }
 }
 
+async function loadNotificationHistory() {
+  const el = document.getElementById('notif-history');
+  if (!el) return;
+  try {
+    const data = await db('admin_notifications', { select: '*', order: 'sent_at.desc', limit: 20 });
+    if (!data?.length) { el.innerHTML = '<div class="empty"><p style="font-size:13px">No notifications sent yet.</p></div>'; return; }
+    el.innerHTML = `<table><tr><th>Title</th><th>Target</th><th>Sent</th></tr>${data.map(n => `<tr><td><strong>${n.title}</strong><div style="color:var(--text2);font-size:12px">${n.body}</div></td><td>${n.target}</td><td style="color:var(--text2)">${new Date(n.sent_at).toLocaleString('en-IN')}</td></tr>`).join('')}</table>`;
+  } catch(e) { el.innerHTML = '<div class="empty"><p style="font-size:13px">Run the SQL to create "admin_notifications" table first.</p></div>'; }
+}
+
 // ── ANNOUNCEMENTS ──────────────────────────────────────────────────────────
-function openAnnouncementModal() { document.getElementById('announcement-modal').classList.add('open'); }
+function openAnnouncementModal() {
+  document.getElementById('ann-title').value = '';
+  document.getElementById('ann-message').value = '';
+  document.getElementById('ann-type').value = 'info';
+  document.getElementById('announcement-modal').classList.add('open');
+}
+
+async function loadAnnouncements() {
+  try {
+    const data = await db('announcements', { select: '*', order: 'created_at.desc' });
+    allAnnouncements = data || [];
+    renderAnnouncements(allAnnouncements);
+  } catch(e) {
+    document.getElementById('announcements-table').innerHTML = '<div class="empty"><div class="icon">📢</div><p>Could not load. Run the SQL to create the "announcements" table first.</p></div>';
+  }
+}
+
+function renderAnnouncements(list) {
+  const el = document.getElementById('announcements-table');
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="icon">📢</div><p>No announcements yet.</p></div>'; return; }
+  const typeIcon = { info: 'ℹ️', warning: '⚠️', success: '✅' };
+  el.innerHTML = `<table><tr><th>Title</th><th>Type</th><th>Date</th><th>Status</th><th>Actions</th></tr>${list.map(a => `<tr>
+    <td><strong>${a.title}</strong><div style="color:var(--text2);font-size:12px;margin-top:2px">${a.message}</div></td>
+    <td>${typeIcon[a.type]||''} ${a.type}</td>
+    <td style="color:var(--text2)">${new Date(a.created_at).toLocaleDateString('en-IN')}</td>
+    <td><span class="status ${a.is_active?'status-active':'status-blocked'}">${a.is_active?'Active':'Hidden'}</span></td>
+    <td style="display:flex;gap:6px">
+      <button class="btn btn-secondary btn-sm" onclick="toggleAnnouncement('${a.id}', ${!a.is_active})">${a.is_active?'🙈 Hide':'👁️ Show'}</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement('${a.id}')">🗑️</button>
+    </td>
+  </tr>`).join('')}</table>`;
+}
+
 async function saveAnnouncement() {
-  const ann = { title: document.getElementById('ann-title').value, message: document.getElementById('ann-message').value, type: document.getElementById('ann-type').value, created_at: new Date().toISOString(), is_active: true };
-  if (!ann.title || !ann.message) { showToast('Title and message required', 'error'); return; }
-  announcements.push(ann);
-  showToast('Announcement saved!');
-  closeModal('announcement-modal');
-  document.getElementById('announcements-table').innerHTML = `<table><tr><th>Title</th><th>Type</th><th>Date</th></tr>${announcements.map(a => `<tr><td><strong>${a.title}</strong></td><td>${a.type}</td><td>${new Date(a.created_at).toLocaleDateString('en-IN')}</td></tr>`).join('')}</table>`;
+  const title = document.getElementById('ann-title').value.trim();
+  const message = document.getElementById('ann-message').value.trim();
+  const type = document.getElementById('ann-type').value;
+  if (!title || !message) { showToast('Title and message required', 'error'); return; }
+  try {
+    await db('announcements', { method: 'POST', body: { title, message, type, is_active: true } });
+    showToast('Announcement published!');
+    closeModal('announcement-modal');
+    loadAnnouncements();
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function toggleAnnouncement(id, newState) {
+  try { await db(`announcements?id=eq.${id}`, { method: 'PATCH', body: { is_active: newState } }); loadAnnouncements(); }
+  catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteAnnouncement(id) {
+  showConfirm('Delete Announcement', 'Confirm delete?', async () => {
+    try { await db(`announcements?id=eq.${id}`, { method: 'DELETE' }); showToast('Deleted'); loadAnnouncements(); }
+    catch(e) { showToast('Error: ' + e.message, 'error'); }
+  });
 }
 
 // ── SETTINGS ───────────────────────────────────────────────────────────────
@@ -890,7 +1027,8 @@ function showToast(msg, type = 'success') {
 }
 document.querySelectorAll('.modal-overlay').forEach(overlay => { overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); }); });
 window.addEventListener('load', () => {
-  if (sessionStorage.getItem('admin_auth')) showApp();
+  const savedToken = sessionStorage.getItem('admin_access_token');
+  if (savedToken) { adminAccessToken = savedToken; showApp(); }
   document.getElementById('login-password').addEventListener('keypress', e => { if(e.key==='Enter') adminLogin(); });
   document.getElementById('login-email').addEventListener('keypress', e => { if(e.key==='Enter') adminLogin(); });
 });
