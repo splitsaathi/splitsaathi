@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, ScrollView, Platform, Image,
+  ActivityIndicator, Alert, ScrollView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { signIn, signInWithGoogle } from '../../services/auth';
@@ -47,7 +47,7 @@ export default function LoginScreen({ navigation }) {
         {/* ── Header ── */}
         <View style={s.header}>
           <View style={s.logoWrap}>
-            <Image source={require('../../assets/icon.png')} style={s.logo} resizeMode="contain" />
+            <Text style={{ fontSize: 40 }}>💰</Text>
           </View>
           <Text style={s.appName}>Splitsathi</Text>
           <Text style={s.tagline}>Dosto ke saath kharche baantao, aasani se</Text>
