@@ -32,3 +32,11 @@ console.log('✅ robots.txt created');
 const cname = 'splitsathi.com';
 fs.writeFileSync(path.join(__dirname, 'dist', 'CNAME'), cname);
 console.log('✅ CNAME created: splitsathi.com');
+// Auto update docs/index.html with correct hash
+const docsIndexPath = path.join(__dirname, 'docs', 'index.html');
+if (fs.existsSync(docsIndexPath)) {
+  let docsHtml = fs.readFileSync(docsIndexPath, 'utf8');
+  docsHtml = docsHtml.replace(/<script type="module" src=".*AppEntry.*\.js"><\/script>/, `<script type="module" src="${html.match(/AppEntry-[a-z0-9]+\.js/)[0].replace(/.*AppEntry/, '/_expo/static/js/web/AppEntry')}"></script>`);
+  fs.writeFileSync(docsIndexPath, docsHtml);
+  console.log('✅ docs/index.html AppEntry hash updated');
+}
