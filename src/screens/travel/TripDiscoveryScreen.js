@@ -693,11 +693,10 @@ export default function TripDiscoveryScreen({ navigation }) {
     return (
       <View style={s.tripCard}>
         <View style={{ position:'relative' }}>
-          {imgErrors[trip.id] ? (
-            <View style={[s.tripImage, { backgroundColor: cc, alignItems:'center', justifyContent:'center' }]}>
-              <Text style={{ fontSize:44 }}>🏞️</Text>
-            </View>
-          ) : (
+          <View style={[s.tripImage, { backgroundColor: cc, alignItems:'center', justifyContent:'center', position:'absolute', top:0, left:0, right:0 }]}>
+            <Text style={{ fontSize:44, opacity:0.5 }}>🏞️</Text>
+          </View>
+          {!imgErrors[trip.id] && (
             <Image
               source={{ uri: trip.image }}
               style={s.tripImage}
