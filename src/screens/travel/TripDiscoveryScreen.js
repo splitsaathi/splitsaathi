@@ -596,6 +596,7 @@ export default function TripDiscoveryScreen({ navigation }) {
   const [syncModal,   setSyncModal]   = useState(null); // trip object
 
   useEffect(() => { if (profile?.id) loadFriends(profile.id); }, [profile?.id]);
+  useEffect(() => { handleGetLocation(); }, []); // auto-sort nearest-to-farthest on load
 
   const handleGetLocation = async () => {
     setLocLoading(true);
