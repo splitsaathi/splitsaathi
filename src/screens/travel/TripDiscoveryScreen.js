@@ -871,7 +871,9 @@ export default function TripDiscoveryScreen({ navigation }) {
       </View>
 
       <FlatList
+        key={`${filter}-${priceFilter}-${sortBy}-${search}`}
         data={filtered}
+        extraData={filtered}
         keyExtractor={item => item.id}
         renderItem={renderTrip}
         showsVerticalScrollIndicator={false}
