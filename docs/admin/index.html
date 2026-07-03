@@ -261,11 +261,11 @@
         <!-- EXPLORE TRIPS -->
         <div class="page" id="page-trips">
           <div class="search-bar">
-            <input class="search-input" placeholder="Search trips..." id="trip-search" oninput="filterTrips()"/>
+            <input class="search-input" placeholder="Search trips by title or state..." id="trip-search" oninput="filterTrips()"/>
             <button class="btn btn-primary" onclick="openTripModal()">+ Add Trip</button>
           </div>
           <div class="table-card">
-            <div class="table-header"><h3>Explore Trips</h3><span id="trip-count" style="font-size:13px;color:var(--text2)"></span></div>
+            <div class="table-header"><h3>Explore Trips (Live App Data)</h3><span id="trip-count" style="font-size:13px;color:var(--text2)"></span></div>
             <div id="trips-table"><div class="loading"><div class="spinner"></div><p>Loading...</p></div></div>
           </div>
         </div>
@@ -489,33 +489,72 @@
 
 <!-- TRIP MODAL -->
 <div class="modal-overlay" id="trip-modal">
-  <div class="modal">
+  <div class="modal" style="max-width:640px">
     <div class="modal-header">
       <h3 id="trip-modal-title">Add Trip</h3>
       <button class="modal-close" onclick="closeModal('trip-modal')">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="trip-id"/>
-      <div class="field"><label>Trip Name *</label><input id="trip-name" placeholder="e.g. Goa Beach Trip"/></div>
-      <div class="field"><label>Destination *</label><input id="trip-destination" placeholder="e.g. Goa, India"/></div>
-      <div class="field"><label>Description</label><textarea id="trip-description" placeholder="Trip description..."></textarea></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div class="field"><label>Price (₹)</label><input id="trip-price" type="number" placeholder="e.g. 5000"/></div>
+      <input type="hidden" id="trip-slug"/>
+      <input type="hidden" id="trip-image-url"/>
+      <div class="field">
+        <label>Trip Photo</label>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div id="trip-photo-preview-wrap" style="width:72px;height:72px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+            <img id="trip-photo-preview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover"/>
+            <span id="trip-photo-preview-empty" style="font-size:11px;color:var(--text2)">No photo</span>
+          </div>
+          <div style="flex:1">
+            <input type="file" id="trip-photo-input" accept="image/*" style="display:none" onchange="handleTripPhotoSelect(event)"/>
+            <div style="display:flex;gap:8px">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('trip-photo-input').click()">📤 Upload Photo</button>
+              <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('trip-image-url').value='';updateTripPhotoThumb()">✕ Remove</button>
+            </div>
+            <div id="trip-photo-status" style="font-size:12px;color:var(--text2);margin-top:6px"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+        <div class="field"><label>Trip Title *</label><input id="trip-name" placeholder="e.g. Taj Mahal, Agra"/></div>
+        <div class="field"><label>State</label><input id="trip-state" placeholder="e.g. Uttar Pradesh"/></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="field"><label>Latitude</label><input id="trip-lat" type="number" step="0.01" placeholder="27.17"/></div>
+        <div class="field"><label>Longitude</label><input id="trip-lon" type="number" step="0.01" placeholder="78.04"/></div>
         <div class="field"><label>Category</label>
           <select id="trip-category">
-            <option>Beach</option><option>Mountain</option><option>Heritage</option>
-            <option>Adventure</option><option>Wildlife</option><option>City</option>
+            <option>Heritage</option><option>Wildlife</option><option>Beaches</option><option>Hill Stations</option>
+            <option>Spiritual</option><option>Nature</option><option>City Tour</option><option>Offbeat</option>
+            <option>Pilgrimage</option><option>Desert</option><option>Backwaters</option><option>Trekking</option>
+            <option>Skiing</option><option>Lakes</option><option>Adventure</option>
           </select>
         </div>
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="field"><label>Rating</label><input id="trip-rating" type="number" step="0.1" min="0" max="5" placeholder="4.7"/></div>
+        <div class="field"><label>Reviews Label</label><input id="trip-reviews" placeholder="e.g. 2.5k"/></div>
+        <div class="field"><label>Intensity</label>
+          <select id="trip-intensity"><option>Budget</option><option>Standard</option><option>Premium</option></select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="field"><label>Travel Cost (₹)</label><input id="trip-travel" type="number" placeholder="1500"/></div>
+        <div class="field"><label>Stay Cost (₹)</label><input id="trip-stay" type="number" placeholder="2000"/></div>
+        <div class="field"><label>Food Cost (₹)</label><input id="trip-food" type="number" placeholder="1000"/></div>
+      </div>
+      <div class="field"><label>Description</label><textarea id="trip-description" placeholder="Short trip description..."></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field"><label>Tags (comma separated)</label><input id="trip-tags" placeholder="UNESCO, Photography, History"/></div>
+        <div class="field"><label>Best Months</label><input id="trip-best-months" placeholder="e.g. Oct–Mar"/></div>
+      </div>
+      <div class="field"><label>Highlights (comma separated)</label><input id="trip-highlights" placeholder="Sunrise View, Local Market, Museum"/></div>
       <div class="field"><label>Status</label>
         <select id="trip-status">
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="featured">Featured</option>
+          <option value="true">Active (visible in app)</option>
+          <option value="false">Inactive (hidden)</option>
         </select>
       </div>
-      <div class="field"><label>Image URL</label><input id="trip-image" placeholder="https://..."/></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('trip-modal')">Cancel</button>
@@ -909,33 +948,101 @@ async function deletePopularTrip(id) {
   });
 }
 
-// ── EXPLORE TRIPS ──────────────────────────────────────────────────────────
+// ── EXPLORE TRIPS (discover_trips table — powers the live app's Explore screen) ──
 async function loadTrips() {
   try {
-    const data = await db('explore_trips', { select: '*', order: 'created_at.desc' });
+    const data = await db('discover_trips', { select: '*', order: 'title.asc', limit: 1000 });
     allTrips = data || [];
     renderTrips(allTrips);
     document.getElementById('trip-count').textContent = `${allTrips.length} trips`;
   } catch(e) {
-    document.getElementById('trips-table').innerHTML = '<div class="empty"><div class="icon">🗺️</div><p>No explore_trips table found.</p></div>';
+    document.getElementById('trips-table').innerHTML = '<div class="empty"><div class="icon">🗺️</div><p>Could not load. Run setup-discover-trips.sql in Supabase first.</p></div>';
   }
 }
 
 function renderTrips(trips) {
   const el = document.getElementById('trips-table');
   if (!trips.length) { el.innerHTML = '<div class="empty"><div class="icon">🗺️</div><p>No trips yet.</p></div>'; return; }
-  el.innerHTML = `<table><tr><th>Name</th><th>Destination</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr>${trips.map(t => `<tr><td><strong>${t.name||t.title||'-'}</strong></td><td style="color:var(--text2)">${t.destination||'-'}</td><td>${t.category||'-'}</td><td>₹${t.price||0}</td><td><span class="status status-active">${t.status||'active'}</span></td><td style="display:flex;gap:6px"><button class="btn btn-warning btn-sm" onclick='editTrip(${JSON.stringify(t)})'>✏️ Edit</button><button class="btn btn-danger btn-sm" onclick="deleteTrip('${t.id}')">🗑️</button></td></tr>`).join('')}</table>`;
+  el.innerHTML = `<table><tr><th>Photo</th><th>Title</th><th>State</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr>${trips.map(t => `<tr>
+    <td>${t.image_url ? `<img src="${t.image_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover"/>` : `<span style="font-size:20px">🗺️</span>`}</td>
+    <td><strong>${t.title}</strong></td>
+    <td style="color:var(--text2)">${t.state||'-'}</td>
+    <td>${t.category||'-'}</td>
+    <td style="color:var(--green)">₹${((t.travel_cost||0)+(t.stay_cost||0)+(t.food_cost||0)).toLocaleString('en-IN')}</td>
+    <td><span class="status ${t.is_active?'status-active':'status-blocked'}">${t.is_active?'Active':'Hidden'}</span></td>
+    <td style="display:flex;gap:6px">
+      <button class="btn btn-warning btn-sm" onclick='editTrip(${JSON.stringify(t).replace(/'/g,"&#39;")})'>✏️ Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteTrip('${t.id}')">🗑️</button>
+    </td>
+  </tr>`).join('')}</table>`;
 }
 
 function filterTrips() {
   const q = document.getElementById('trip-search').value.toLowerCase();
-  renderTrips(allTrips.filter(t => (t.name||t.title||'').toLowerCase().includes(q)));
+  renderTrips(allTrips.filter(t => (t.title||'').toLowerCase().includes(q) || (t.state||'').toLowerCase().includes(q)));
+}
+
+function slugify(title) {
+  return title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') + '_' + Date.now().toString(36);
+}
+
+function updateTripPhotoThumb() {
+  const url = document.getElementById('trip-image-url').value;
+  const img = document.getElementById('trip-photo-preview');
+  const empty = document.getElementById('trip-photo-preview-empty');
+  if (url) { img.src = url; img.style.display = 'block'; empty.style.display = 'none'; }
+  else { img.style.display = 'none'; empty.style.display = 'block'; }
+}
+
+async function handleTripPhotoSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('trip-photo-status');
+  statusEl.textContent = 'Uploading...';
+  try {
+    const ext = file.name.split('.').pop();
+    const path = `discover/${Date.now()}.${ext}`;
+    const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/trip-images/${path}`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${adminAccessToken || SUPABASE_KEY}`, 'x-upsert': 'true', 'Content-Type': file.type },
+      body: file
+    });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(uploadRes.status === 404 ? 'Storage bucket "trip-images" not found — create it first.' : errText);
+    }
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/trip-images/${path}`;
+    document.getElementById('trip-image-url').value = publicUrl;
+    statusEl.textContent = '✅ Uploaded!';
+    updateTripPhotoThumb();
+  } catch (e) {
+    statusEl.textContent = '❌ ' + e.message;
+  }
 }
 
 function openTripModal(trip = null) {
   document.getElementById('trip-modal-title').textContent = trip ? 'Edit Trip' : 'Add Trip';
-  ['id','name','destination','description','price','image'].forEach(f => { const el = document.getElementById('trip-' + f); if (el) el.value = trip ? (trip[f]||'') : ''; });
-  if (trip) { document.getElementById('trip-category').value = trip.category||'Beach'; document.getElementById('trip-status').value = trip.status||'active'; }
+  document.getElementById('trip-id').value = trip?.id || '';
+  document.getElementById('trip-slug').value = trip?.slug || '';
+  document.getElementById('trip-image-url').value = trip?.image_url || '';
+  document.getElementById('trip-photo-status').textContent = '';
+  updateTripPhotoThumb();
+  document.getElementById('trip-name').value = trip?.title || '';
+  document.getElementById('trip-state').value = trip?.state || '';
+  document.getElementById('trip-lat').value = trip?.lat ?? '';
+  document.getElementById('trip-lon').value = trip?.lon ?? '';
+  document.getElementById('trip-category').value = trip?.category || 'Heritage';
+  document.getElementById('trip-rating').value = trip?.rating ?? '4.5';
+  document.getElementById('trip-reviews').value = trip?.reviews || '1k';
+  document.getElementById('trip-intensity').value = trip?.intensity || 'Standard';
+  document.getElementById('trip-travel').value = trip?.travel_cost ?? '1500';
+  document.getElementById('trip-stay').value = trip?.stay_cost ?? '2000';
+  document.getElementById('trip-food').value = trip?.food_cost ?? '1000';
+  document.getElementById('trip-description').value = trip?.description || '';
+  document.getElementById('trip-tags').value = (trip?.tags || []).join(', ');
+  document.getElementById('trip-best-months').value = trip?.best_months || 'Oct–Mar';
+  document.getElementById('trip-highlights').value = (trip?.highlights || []).join(', ');
+  document.getElementById('trip-status').value = trip ? String(trip.is_active) : 'true';
   document.getElementById('trip-modal').classList.add('open');
 }
 
@@ -943,18 +1050,39 @@ function editTrip(trip) { openTripModal(trip); }
 
 async function saveTrip() {
   const id = document.getElementById('trip-id').value;
-  const body = { name: document.getElementById('trip-name').value, destination: document.getElementById('trip-destination').value, description: document.getElementById('trip-description').value, price: parseFloat(document.getElementById('trip-price').value)||0, category: document.getElementById('trip-category').value, status: document.getElementById('trip-status').value, image_url: document.getElementById('trip-image').value };
-  if (!body.name || !body.destination) { showToast('Name and Destination required', 'error'); return; }
+  const title = document.getElementById('trip-name').value.trim();
+  if (!title) { showToast('Trip title required', 'error'); return; }
+  const body = {
+    slug: document.getElementById('trip-slug').value || slugify(title),
+    title,
+    state: document.getElementById('trip-state').value,
+    lat: parseFloat(document.getElementById('trip-lat').value) || null,
+    lon: parseFloat(document.getElementById('trip-lon').value) || null,
+    category: document.getElementById('trip-category').value,
+    rating: parseFloat(document.getElementById('trip-rating').value) || 4.5,
+    reviews: document.getElementById('trip-reviews').value || '1k',
+    intensity: document.getElementById('trip-intensity').value,
+    image_url: document.getElementById('trip-image-url').value || null,
+    travel_cost: parseInt(document.getElementById('trip-travel').value) || 0,
+    stay_cost: parseInt(document.getElementById('trip-stay').value) || 0,
+    food_cost: parseInt(document.getElementById('trip-food').value) || 0,
+    starts_from: (parseInt(document.getElementById('trip-travel').value)||0) + (parseInt(document.getElementById('trip-stay').value)||0) + (parseInt(document.getElementById('trip-food').value)||0),
+    description: document.getElementById('trip-description').value,
+    tags: document.getElementById('trip-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    highlights: document.getElementById('trip-highlights').value.split(',').map(s=>s.trim()).filter(Boolean),
+    best_months: document.getElementById('trip-best-months').value || 'Oct–Mar',
+    is_active: document.getElementById('trip-status').value === 'true',
+  };
   try {
-    if (id) { await db(`explore_trips?id=eq.${id}`, { method: 'PATCH', body }); showToast('Trip updated!'); }
-    else { await db('explore_trips', { method: 'POST', body }); showToast('Trip added!'); }
+    if (id) { await db(`discover_trips?id=eq.${id}`, { method: 'PATCH', body }); showToast('✅ Trip updated! App mein reflect hoga.'); }
+    else { await db('discover_trips', { method: 'POST', body }); showToast('✅ Trip added! App mein reflect hoga.'); }
     closeModal('trip-modal'); loadTrips();
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
 async function deleteTrip(id) {
-  showConfirm('Delete Trip', 'Are you sure?', async () => {
-    try { await db(`explore_trips?id=eq.${id}`, { method: 'DELETE' }); showToast('Trip deleted'); loadTrips(); }
+  showConfirm('Delete Trip', 'Ye trip app se permanently hat jaayegi. Confirm?', async () => {
+    try { await db(`discover_trips?id=eq.${id}`, { method: 'DELETE' }); showToast('Trip deleted'); loadTrips(); }
     catch(e) { showToast('Error: ' + e.message, 'error'); }
   });
 }
