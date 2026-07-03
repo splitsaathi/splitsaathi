@@ -660,10 +660,15 @@ export default function TripDiscoveryScreen({ navigation }) {
   };
 
   const tripsWithDist = useMemo(() =>
-    ALL_TRIPS.map(t => ({
-      ...t,
-      dist: userCoords ? haversine(userCoords.lat, userCoords.lon, t.lat, t.lon) : t.baseDist || 500,
-    })), [userCoords]);
+    ALL_TRIPS.map(t => {
+      const dist = userCoords ? haversine(userCoords.lat, userCoords.lon, t.lat, t.lon) : t.baseDist || 500;
+      // Travel cost scales with round-trip distance (~₹3.5/km blended bus/train/flight rate),
+      // rounded to the nearest ₹100, with a sensible floor so very close trips aren't ₹0.
+      const dynamicTravel = Math.max(400, Math.round((dist * 2 * 3.5) / 100) * 100);
+      const breakdown = { ...t.breakdown, travel: dynamicTravel };
+      const startsFrom = dynamicTravel + breakdown.stay + breakdown.food;
+      return { ...t, dist, breakdown, startsFrom };
+    }), [userCoords]);
 
   const filtered = useMemo(() => {
     return tripsWithDist.filter(t => {
