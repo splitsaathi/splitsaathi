@@ -287,7 +287,7 @@ const s = StyleSheet.create({
   // Hero
   hero:        { position: 'relative', flexDirection: 'row', padding: 24, paddingTop: 40, backgroundColor: '#f7f7f2', minHeight: 340, overflow: 'hidden' },
   heroBgImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
-  heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(247,247,242,0.88)' },
+  heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(247,247,242,0.78)' },
   heroLeft:    { flex: 1, zIndex: 1 },
   heroHeadline:{ fontSize: 28, fontWeight: '800', color: '#1a1a1a', lineHeight: 36, marginBottom: 4 },
   heroSub:     { marginBottom: 16 },
