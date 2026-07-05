@@ -151,6 +151,13 @@ export default function LoginScreen({ navigation }) {
 
         {/* Hero */}
         <View style={s.hero}>
+          <Image
+            source={require('../../../assets/images/hero-friends.png')}
+            style={s.heroBgImage}
+            resizeMode="cover"
+          />
+          <View style={s.heroOverlay} />
+
           <View style={s.heroLeft}>
             <Text style={s.heroHeadline}>
               Less stress when{'\n'}sharing expenses
@@ -177,15 +184,6 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
 
             <Text style={s.heroPlatform}>Free for 📱 iPhone,  Android, and web.</Text>
-          </View>
-
-          {/* Hero Graphic */}
-          <View style={s.heroRight}>
-            <Image
-              source={require('../../../assets/images/hero-friends.png')}
-              style={s.heroImage}
-              resizeMode="cover"
-            />
           </View>
         </View>
 
@@ -287,10 +285,10 @@ const s = StyleSheet.create({
   navSignupTxt:{ color: '#fff', fontWeight: '700', fontSize: 14 },
 
   // Hero
-  hero:        { flexDirection: 'row', padding: 24, paddingTop: 40, backgroundColor: '#f7f7f2', minHeight: 320 },
-  heroLeft:    { flex: 1.2 },
-  heroRight:   { flex: 0.8, alignItems: 'center', justifyContent: 'center' },
-  heroImage:   { width: 260, height: 320, borderRadius: 24, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  hero:        { position: 'relative', flexDirection: 'row', padding: 24, paddingTop: 40, backgroundColor: '#f7f7f2', minHeight: 340, overflow: 'hidden' },
+  heroBgImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
+  heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(247,247,242,0.88)' },
+  heroLeft:    { flex: 1, zIndex: 1 },
   heroHeadline:{ fontSize: 28, fontWeight: '800', color: '#1a1a1a', lineHeight: 36, marginBottom: 4 },
   heroSub:     { marginBottom: 16 },
   heroHighlight:{ fontSize: 28, fontWeight: '800', color: GREEN },
