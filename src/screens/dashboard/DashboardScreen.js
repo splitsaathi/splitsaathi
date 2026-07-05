@@ -422,7 +422,6 @@ export default function DashboardScreen({ navigation }) {
             { icon:'👥', label:'New Group',         onPress: () => goToTab('Groups') },
             { icon:'🧮', label:'Itemized Splitter', onPress: () => navigation.navigate('ItemizedSplitter', { members: [], profile }) },
             { icon:'🧳', label:'Plan a Trip',        onPress: () => navigation.navigate('TravelHub') },
-            { icon:'🔍', label:'Explore Trips',      onPress: () => navigation.navigate('TripDiscovery') },
           ].map(a => (
             <TouchableOpacity key={a.label} style={s.quickAction} onPress={a.onPress} activeOpacity={0.7}>
               <Text style={s.quickIcon}>{a.icon}</Text>
