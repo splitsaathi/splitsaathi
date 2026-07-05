@@ -182,7 +182,7 @@ export default function LoginScreen({ navigation }) {
           {/* Hero Graphic */}
           <View style={s.heroRight}>
             <Image
-              source={require('../../assets/images/hero-friends.png')}
+              source={require('../../../assets/images/hero-friends.png')}
               style={s.heroImage}
               resizeMode="cover"
             />
