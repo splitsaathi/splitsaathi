@@ -515,9 +515,10 @@
           </div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px">
         <div class="field"><label>Trip Title *</label><input id="trip-name" placeholder="e.g. Taj Mahal, Agra"/></div>
-        <div class="field"><label>State</label><input id="trip-state" placeholder="e.g. Uttar Pradesh"/></div>
+        <div class="field"><label>State/Region</label><input id="trip-state" placeholder="e.g. Uttar Pradesh"/></div>
+        <div class="field"><label>Country</label><input id="trip-country" placeholder="e.g. India" value="India"/></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
         <div class="field"><label>Latitude</label><input id="trip-lat" type="number" step="0.01" placeholder="27.17"/></div>
@@ -951,7 +952,7 @@ async function deletePopularTrip(id) {
 // ── EXPLORE TRIPS (discover_trips table — powers the live app's Explore screen) ──
 async function loadTrips() {
   try {
-    const data = await db('discover_trips', { select: '*', order: 'title.asc', limit: 1000 });
+    const data = await db('discover_trips', { select: '*', order: 'title.asc', limit: 5000 });
     allTrips = data || [];
     renderTrips(allTrips);
     document.getElementById('trip-count').textContent = `${allTrips.length} trips`;
@@ -963,10 +964,10 @@ async function loadTrips() {
 function renderTrips(trips) {
   const el = document.getElementById('trips-table');
   if (!trips.length) { el.innerHTML = '<div class="empty"><div class="icon">🗺️</div><p>No trips yet.</p></div>'; return; }
-  el.innerHTML = `<table><tr><th>Photo</th><th>Title</th><th>State</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr>${trips.map(t => `<tr>
+  el.innerHTML = `<table><tr><th>Photo</th><th>Title</th><th>State/Country</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr>${trips.map(t => `<tr>
     <td>${t.image_url ? `<img src="${t.image_url}" style="width:36px;height:36px;border-radius:6px;object-fit:cover"/>` : `<span style="font-size:20px">🗺️</span>`}</td>
     <td><strong>${t.title}</strong></td>
-    <td style="color:var(--text2)">${t.state||'-'}</td>
+    <td style="color:var(--text2)">${t.state||'-'}${t.country && t.country !== t.state ? ', ' + t.country : ''}</td>
     <td>${t.category||'-'}</td>
     <td style="color:var(--green)">₹${((t.travel_cost||0)+(t.stay_cost||0)+(t.food_cost||0)).toLocaleString('en-IN')}</td>
     <td><span class="status ${t.is_active?'status-active':'status-blocked'}">${t.is_active?'Active':'Hidden'}</span></td>
@@ -979,7 +980,7 @@ function renderTrips(trips) {
 
 function filterTrips() {
   const q = document.getElementById('trip-search').value.toLowerCase();
-  renderTrips(allTrips.filter(t => (t.title||'').toLowerCase().includes(q) || (t.state||'').toLowerCase().includes(q)));
+  renderTrips(allTrips.filter(t => (t.title||'').toLowerCase().includes(q) || (t.state||'').toLowerCase().includes(q) || (t.country||'').toLowerCase().includes(q)));
 }
 
 function slugify(title) {
@@ -1029,6 +1030,7 @@ function openTripModal(trip = null) {
   updateTripPhotoThumb();
   document.getElementById('trip-name').value = trip?.title || '';
   document.getElementById('trip-state').value = trip?.state || '';
+  document.getElementById('trip-country').value = trip?.country || 'India';
   document.getElementById('trip-lat').value = trip?.lat ?? '';
   document.getElementById('trip-lon').value = trip?.lon ?? '';
   document.getElementById('trip-category').value = trip?.category || 'Heritage';
@@ -1056,6 +1058,7 @@ async function saveTrip() {
     slug: document.getElementById('trip-slug').value || slugify(title),
     title,
     state: document.getElementById('trip-state').value,
+    country: document.getElementById('trip-country').value || 'India',
     lat: parseFloat(document.getElementById('trip-lat').value) || null,
     lon: parseFloat(document.getElementById('trip-lon').value) || null,
     category: document.getElementById('trip-category').value,

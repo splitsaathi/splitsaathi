@@ -31,7 +31,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // so admins can add/edit/remove trips (including photos) without an app update.
 async function fetchDiscoverTrips() {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/discover_trips?select=*&is_active=eq.true&order=title.asc`,
+    `${SUPABASE_URL}/rest/v1/discover_trips?select=*&is_active=eq.true&order=title.asc&limit=5000`,
     { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
   );
   if (!res.ok) throw new Error('Failed to load trips');
