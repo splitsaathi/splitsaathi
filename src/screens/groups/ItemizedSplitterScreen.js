@@ -8,6 +8,7 @@ import Avatar from '../../components/Avatar';
 
 export default function ItemizedSplitterScreen({ route, navigation }) {
   const { members = [], profile, onSave } = route?.params || {};
+  const CUR = profile?.currency_symbol || '₹';
 
   const [items, setItems]   = useState([{ id: '1', name: '', price: '', participants: members.map(m => m.id) }]);
   const [paidBy, setPaidBy] = useState(profile?.id || '');
@@ -79,7 +80,7 @@ export default function ItemizedSplitterScreen({ route, navigation }) {
               <TextInput style={[s.input, { flex: 1, marginRight: 10 }]} placeholder="Item name (e.g. Pizza)" placeholderTextColor={COLORS.textMuted}
                 value={item.name} onChangeText={t => updateItem(item.id, 'name', t)} />
               <View style={s.priceInputWrap}>
-                <Text style={s.rupeeSign}>₹</Text>
+                <Text style={s.rupeeSign}>{CUR}</Text>
                 <TextInput style={s.priceInput} placeholder="0.00" placeholderTextColor={COLORS.textMuted}
                   keyboardType="numeric" value={item.price} onChangeText={t => updateItem(item.id, 'price', t)} />
               </View>
@@ -99,7 +100,7 @@ export default function ItemizedSplitterScreen({ route, navigation }) {
             </View>
             {item.price && parseFloat(item.price) > 0 && item.participants.length > 0 && (
               <Text style={s.perPersonHint}>
-                ₹{(parseFloat(item.price) / item.participants.length).toFixed(2)} per person
+                {CUR}{(parseFloat(item.price) / item.participants.length).toFixed(2)} per person
               </Text>
             )}
           </View>
@@ -116,7 +117,7 @@ export default function ItemizedSplitterScreen({ route, navigation }) {
             <Text style={s.summaryTitle}>Summary</Text>
             <View style={s.summaryTotalRow}>
               <Text style={s.summaryTotalLabel}>Total Bill</Text>
-              <Text style={s.summaryTotalAmt}>₹{total.toFixed(2)}</Text>
+              <Text style={s.summaryTotalAmt}>{CUR}{total.toFixed(2)}</Text>
             </View>
             <View style={s.divider} />
             <Text style={s.summarySubTitle}>Individual Shares</Text>
@@ -124,7 +125,7 @@ export default function ItemizedSplitterScreen({ route, navigation }) {
               <View key={m.id} style={s.shareRow}>
                 <Avatar name={m.name} size={28} uri={m.avatar_url} />
                 <Text style={s.shareName}>{getName(m.id)}</Text>
-                <Text style={s.shareAmt}>₹{(sharesMap[m.id] || 0).toFixed(2)}</Text>
+                <Text style={s.shareAmt}>{CUR}{(sharesMap[m.id] || 0).toFixed(2)}</Text>
               </View>
             ))}
           </View>

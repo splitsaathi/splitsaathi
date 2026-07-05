@@ -24,6 +24,7 @@ const CAT_COLORS = {
 export default function GroupDetailScreen({ route, navigation }) {
   const { group } = route.params;
   const { profile }                                         = useAuthStore();
+  const CUR = profile?.currency_symbol || '₹';
   const { bills, loadBills, settle, addBill, getBalances }  = useBillStore();
   const { groupMembers, addMemberToGroup, loadGroupMembers } = useGroupStore();
   const { friends, loadFriends }                            = useFriendStore();
@@ -213,7 +214,7 @@ export default function GroupDetailScreen({ route, navigation }) {
     if (error) { Alert.alert('Error', error.message); return; }
     setShowAddModal(false);
     setExpenseTitle(''); setExpenseAmount('');
-    Alert.alert('✅ Added!', `₹${amt} added and split equally among ${members.length} members!`);
+    Alert.alert('✅ Added!', `${CUR}${amt} added and split equally among ${members.length} members!`);
     await loadBills(group.id, profile.id);
   };
 
@@ -303,7 +304,7 @@ Total must be a number. If unclear, estimate from items.` }
     }, group.id, profile.id);
     if (error) { Alert.alert('Error', error.message); return; }
     setScanState('idle'); setScannedBill(null); setShowScanner(false);
-    Alert.alert('✅ Receipt Added!', `₹${scannedBill.total} from ${scannedBill.merchant} added and split!`);
+    Alert.alert('✅ Receipt Added!', `${CUR}${scannedBill.total} from ${scannedBill.merchant} added and split!`);
     await loadBills(group.id, profile.id);
   };
 
@@ -370,12 +371,12 @@ Total must be a number. If unclear, estimate from items.` }
             {myNet === 0
               ? <Text style={s.balSummaryText}>✓ <Text style={{ color:'#86efac' }}>You are settled up</Text></Text>
               : myNet < 0
-                ? <Text style={s.balSummaryText}>You owe <Text style={{ color:'#fb923c', fontWeight:'800' }}>₹{Math.abs(myNet).toFixed(2)}</Text></Text>
-                : <Text style={s.balSummaryText}>You get back <Text style={{ color:'#4ade80', fontWeight:'800' }}>₹{myNet.toFixed(2)}</Text></Text>
+                ? <Text style={s.balSummaryText}>You owe <Text style={{ color:'#fb923c', fontWeight:'800' }}>{CUR}{Math.abs(myNet).toFixed(2)}</Text></Text>
+                : <Text style={s.balSummaryText}>You get back <Text style={{ color:'#4ade80', fontWeight:'800' }}>{CUR}{myNet.toFixed(2)}</Text></Text>
             }
             {balOpen && Object.entries(myBal).map(([uid, amt]) => (
               <Text key={uid} style={s.balSubText}>
-                {amt < 0 ? <>You owe <Text style={{ color:'#fb923c' }}>₹{Math.abs(amt).toFixed(2)}</Text></> : <><Text style={{ color:'#4ade80' }}>₹{amt.toFixed(2)}</Text> owed to you</>}
+                {amt < 0 ? <>You owe <Text style={{ color:'#fb923c' }}>{CUR}{Math.abs(amt).toFixed(2)}</Text></> : <><Text style={{ color:'#4ade80' }}>{CUR}{amt.toFixed(2)}</Text> owed to you</>}
               </Text>
             ))}
           </View>
@@ -423,15 +424,15 @@ Total must be a number. If unclear, estimate from items.` }
                     <View style={{ flex:1, marginLeft:12 }}>
                       <Text style={s.balMemberName}>{member.name}{member.id===profile.id?' (You)':''}</Text>
                       <Text style={[s.balMemberNet, { color: mNet>=0? '#4ade80':'#fb923c' }]}>
-                        {mNet===0 ? 'settled up' : mNet>0 ? `owes ₹${mNet.toFixed(2)} total` : `gets back ₹${Math.abs(mNet).toFixed(2)}`}
+                        {mNet===0 ? 'settled up' : mNet>0 ? `owes ${CUR}${mNet.toFixed(2)} total` : `gets back ${CUR}${Math.abs(mNet).toFixed(2)}`}
                       </Text>
                     </View>
                   </View>
                   {Object.entries(mBal).map(([oid, amt]) => (
                     <View key={oid} style={s.balSubRow}>
                       <Text style={s.balSubLabel}>
-                        {amt>0 ? `${getName(oid)} owes ₹${amt.toFixed(2)} to ${member.name.split(' ')[0]}`
-                               : `${member.name.split(' ')[0]} owes ₹${Math.abs(amt).toFixed(2)} to ${getName(oid)}`}
+                        {amt>0 ? `${getName(oid)} owes ${CUR}${amt.toFixed(2)} to ${member.name.split(' ')[0]}`
+                               : `${member.name.split(' ')[0]} owes ${CUR}${Math.abs(amt).toFixed(2)} to ${getName(oid)}`}
                       </Text>
                       <View style={s.balActions}>
                         <TouchableOpacity style={s.actionBtn} onPress={() => handleNudge(member.name.split(' ')[0])}>
@@ -461,7 +462,7 @@ Total must be a number. If unclear, estimate from items.` }
           <View style={{ padding: SPACING.md, paddingBottom:40 }}>
             <Text style={s.sectionTitle}>Squad Partition Dues</Text>
             <Text style={{ color: COLORS.textMuted, fontSize:12, marginBottom:14 }}>
-              Equal split share: ₹{members.length > 0 ? Math.round(totalGroupCost/(members.length)).toLocaleString('en-IN') : 0} each
+              Equal split share: {CUR}{members.length > 0 ? Math.round(totalGroupCost/(members.length)).toLocaleString('en-IN') : 0} each
             </Text>
             {memberTotals.map((m, i) => (
               <View key={m.id} style={s.memberSplitRow}>
@@ -476,7 +477,7 @@ Total must be a number. If unclear, estimate from items.` }
                 </View>
                 <View style={{ alignItems:'flex-end' }}>
                   <Text style={[s.totalNet, { color: m.net===0? COLORS.textMuted: m.net>0? '#4ade80':'#fb923c' }]}>
-                    {m.net===0 ? 'Settled' : m.net>0 ? `Gets ₹${m.net.toFixed(0)}` : `Owes ₹${Math.abs(m.net).toFixed(0)}`}
+                    {m.net===0 ? 'Settled' : m.net>0 ? `Gets ${CUR}${m.net.toFixed(0)}` : `Owes ${CUR}${Math.abs(m.net).toFixed(0)}`}
                   </Text>
                   {m.net < 0 && m.id !== profile.id && (
                     <TouchableOpacity style={s.nudgeSm} onPress={() => handleNudge(m.name.split(' ')[0])}>
@@ -488,7 +489,7 @@ Total must be a number. If unclear, estimate from items.` }
             ))}
             <View style={s.groupTotalCard}>
               <Text style={s.groupTotalLabel}>GROUP TOTAL</Text>
-              <Text style={s.groupTotalAmt}>₹{totalGroupCost.toLocaleString('en-IN')}</Text>
+              <Text style={s.groupTotalAmt}>{CUR}{totalGroupCost.toLocaleString('en-IN')}</Text>
               <Text style={s.groupTotalSub}>{groupBills.length} bills · {members.length} members</Text>
             </View>
             <TouchableOpacity style={s.exportBtn} onPress={handleExport} disabled={exporting}>
@@ -529,18 +530,18 @@ Total must be a number. If unclear, estimate from items.` }
               </View>
               {isEditingBudget ? (
                 <View style={s.budgetEditRow}>
-                  <Text style={{ color: COLORS.primary, fontWeight:'700', fontSize:16, marginRight:4 }}>₹</Text>
+                  <Text style={{ color: COLORS.primary, fontWeight:'700', fontSize:16, marginRight:4 }}>{CUR}</Text>
                   <TextInput style={s.budgetInput} value={newBudgetText} onChangeText={setNewBudgetText} keyboardType="numeric" placeholderTextColor={COLORS.textMuted} />
                 </View>
               ) : (
                 <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:12 }}>
                   <View>
                     <Text style={{ color: COLORS.textMuted, fontSize:10, fontWeight:'700', letterSpacing:0.8 }}>DUES ACCRUED</Text>
-                    <Text style={{ color: COLORS.text, fontSize:20, fontWeight:'800', marginTop:4 }}>₹{totalGroupCost.toLocaleString('en-IN')}</Text>
+                    <Text style={{ color: COLORS.text, fontSize:20, fontWeight:'800', marginTop:4 }}>{CUR}{totalGroupCost.toLocaleString('en-IN')}</Text>
                   </View>
                   <View style={{ alignItems:'flex-end' }}>
                     <Text style={{ color: COLORS.textMuted, fontSize:10, fontWeight:'700', letterSpacing:0.8 }}>THRESHOLD GUARD</Text>
-                    <Text style={{ color: COLORS.text, fontSize:20, fontWeight:'800', marginTop:4 }}>₹{projectedBudget.toLocaleString('en-IN')}</Text>
+                    <Text style={{ color: COLORS.text, fontSize:20, fontWeight:'800', marginTop:4 }}>{CUR}{projectedBudget.toLocaleString('en-IN')}</Text>
                   </View>
                 </View>
               )}
@@ -564,7 +565,7 @@ Total must be a number. If unclear, estimate from items.` }
                 <View key={i} style={{ marginBottom:12 }}>
                   <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:4 }}>
                     <Text style={{ color: COLORS.textSub, fontSize:12, fontWeight:'700' }}>{item.name}</Text>
-                    <Text style={{ color: COLORS.text, fontSize:12, fontWeight:'800' }}>₹{item.value.toLocaleString('en-IN')} ({item.percentage}%)</Text>
+                    <Text style={{ color: COLORS.text, fontSize:12, fontWeight:'800' }}>{CUR}{item.value.toLocaleString('en-IN')} ({item.percentage}%)</Text>
                   </View>
                   <View style={s.budgetBarBg}>
                     <View style={[s.budgetBarFill, { width:`${item.percentage}%`, backgroundColor: item.color }]} />
@@ -579,7 +580,7 @@ Total must be a number. If unclear, estimate from items.` }
                         <View style={{ width:10, height:10, borderRadius:5, backgroundColor:d.color }} />
                         <Text style={{ color: COLORS.textMuted, fontSize:11, fontWeight:'700', flex:1 }} numberOfLines={1}>{d.name}</Text>
                       </View>
-                      <Text style={{ color: COLORS.text, fontWeight:'800', fontSize:14 }}>₹{d.value.toLocaleString('en-IN')}</Text>
+                      <Text style={{ color: COLORS.text, fontWeight:'800', fontSize:14 }}>{CUR}{d.value.toLocaleString('en-IN')}</Text>
                       <Text style={{ color: COLORS.textMuted, fontSize:10, marginTop:1 }}>{d.percentage}% share</Text>
                     </View>
                   ))}
@@ -738,7 +739,7 @@ Total must be a number. If unclear, estimate from items.` }
             </View>
             <Text style={s.modalLabel}>Bill Title / Merchant</Text>
             <TextInput style={s.modalInput} placeholder="e.g., Hotel Stay, Taxi ride..." placeholderTextColor={COLORS.textMuted} value={expenseTitle} onChangeText={setExpenseTitle} />
-            <Text style={s.modalLabel}>Amount in ₹</Text>
+            <Text style={s.modalLabel}>Amount in {CUR}</Text>
             <TextInput style={s.modalInput} placeholder="0.00" placeholderTextColor={COLORS.textMuted} value={expenseAmount} onChangeText={setExpenseAmount} keyboardType="numeric" />
             <Text style={s.modalLabel}>Category</Text>
             <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:20 }}>
@@ -802,13 +803,13 @@ Total must be a number. If unclear, estimate from items.` }
                   {scannedBill.items.map((line, idx) => (
                     <View key={idx} style={{ flexDirection:'row', justifyContent:'space-between', paddingVertical:6 }}>
                       <Text style={{ color: COLORS.textSub, fontSize:12 }}>{line.name}</Text>
-                      <Text style={{ color: COLORS.text, fontWeight:'700', fontSize:12 }}>₹{line.price}</Text>
+                      <Text style={{ color: COLORS.text, fontWeight:'700', fontSize:12 }}>{CUR}{line.price}</Text>
                     </View>
                   ))}
                   <View style={{ height:1, backgroundColor: COLORS.borderLight, marginVertical:10 }} />
                   <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
                     <Text style={{ color: COLORS.text, fontWeight:'800', fontSize:13 }}>Total Invoice Amount</Text>
-                    <Text style={{ color: '#10b981', fontWeight:'900', fontSize:20 }}>₹{scannedBill.total}</Text>
+                    <Text style={{ color: '#10b981', fontWeight:'900', fontSize:20 }}>{CUR}{scannedBill.total}</Text>
                   </View>
                   <View style={{ flexDirection:'row', gap:10 }}>
                     <TouchableOpacity style={[s.fabBtn, { flex:2, backgroundColor:'#10b981' }]} onPress={applyScannedBill}>

@@ -26,6 +26,7 @@ const L = {
 export default function AddBillScreen({ route, navigation }) {
   const { group, members } = route.params;
   const { profile }  = useAuthStore();
+  const CUR = profile?.currency_symbol || '₹';
   const { addBill }   = useBillStore();
 
   const [title,             setTitle]             = useState('');
@@ -150,7 +151,7 @@ export default function AddBillScreen({ route, navigation }) {
 
         <View style={s.mainInputRow}>
           <View style={s.descIconBox}>
-            <Text style={s.descIcon}>₹</Text>
+            <Text style={s.descIcon}>{CUR}</Text>
           </View>
           <TextInput
             style={[s.descInput, s.amountInput]}
@@ -209,7 +210,7 @@ export default function AddBillScreen({ route, navigation }) {
         ))}
         {perPerson && (
           <View style={s.perPersonBox}>
-            <Text style={s.perPersonText}>₹{perPerson} per person</Text>
+            <Text style={s.perPersonText}>{CUR}{perPerson} per person</Text>
           </View>
         )}
 

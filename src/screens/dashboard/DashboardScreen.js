@@ -16,7 +16,7 @@ function BarChart({ data }) {
       {data.map((d, i) => (
         <View key={i} style={{ flex:1, alignItems:'center' }}>
           <Text style={{ fontSize:9, color: COLORS.textMuted, marginBottom:2 }}>
-            {d.value > 0 ? `₹${(d.value/1000).toFixed(0)}k` : ''}
+            {d.value > 0 ? `${CUR}${(d.value/1000).toFixed(0)}k` : ''}
           </Text>
           <View style={{ width:'75%', height: Math.max(4, (d.value/maxVal)*65), backgroundColor: d.color||COLORS.primary, borderRadius:4 }} />
           <Text style={{ fontSize:9, color: COLORS.textMuted, marginTop:4, textAlign:'center' }} numberOfLines={1}>{d.label}</Text>
@@ -46,6 +46,7 @@ function HorizontalBreakdown({ data }) {
 
 export default function DashboardScreen({ navigation }) {
   const { profile }                          = useAuthStore();
+  const CUR = profile?.currency_symbol || '₹';
   const { groups, groupMembers, loadGroups } = useGroupStore();
   const { bills, loadBills, getBalances }    = useBillStore();
   const { friends, loadFriends }             = useFriendStore();
@@ -173,7 +174,7 @@ export default function DashboardScreen({ navigation }) {
           );
         }
       } catch (e) {
-        Alert.alert('Settle Up', `You owe ₹${amount.toFixed(2)} to ${friendName}`, [
+        Alert.alert('Settle Up', `You owe ${CUR}${amount.toFixed(2)} to ${friendName}`, [
           { text: 'Go to Groups', onPress: () => goToTab('Groups') },
           { text: 'Cancel', style: 'cancel' }
         ]);
@@ -207,7 +208,7 @@ export default function DashboardScreen({ navigation }) {
         <View style={s.balanceGrid}>
           <View style={s.balCard}>
             <Text style={s.balLabel}>YOU ARE OWED</Text>
-            <Text style={[s.balAmt, { color: COLORS.primary }]}>₹{totalOwed.toLocaleString('en-IN', { minimumFractionDigits:2 })}</Text>
+            <Text style={[s.balAmt, { color: COLORS.primary }]}>{CUR}{totalOwed.toLocaleString('en-IN', { minimumFractionDigits:2 })}</Text>
             <Text style={s.balSub}>overall</Text>
             <TouchableOpacity style={s.settleBtn} onPress={() => goToTab('Activity')}>
               <Text style={s.settleBtnText}>SETTLE UP</Text>
@@ -215,7 +216,7 @@ export default function DashboardScreen({ navigation }) {
           </View>
           <View style={[s.balCard, { borderTopColor: COLORS.border }]}>
             <Text style={s.balLabel}>YOU OWE</Text>
-            <Text style={[s.balAmt, { color: COLORS.owe }]}>₹{totalOwe.toLocaleString('en-IN', { minimumFractionDigits:2 })}</Text>
+            <Text style={[s.balAmt, { color: COLORS.owe }]}>{CUR}{totalOwe.toLocaleString('en-IN', { minimumFractionDigits:2 })}</Text>
             <Text style={s.balSub}>to friends</Text>
             <TouchableOpacity style={[s.settleBtn, { backgroundColor:'transparent', borderWidth:1.5, borderColor: COLORS.primary }]} onPress={() => goToTab('Activity')}>
               <Text style={[s.settleBtnText, { color: COLORS.primary }]}>PAY BALANCES</Text>
@@ -281,7 +282,7 @@ export default function DashboardScreen({ navigation }) {
                 </View>
                 <View style={{ alignItems:'flex-end' }}>
                   <Text style={[s.friendAmt, { color: amt>0? COLORS.primary: COLORS.owe }]}>
-                    ₹{Math.abs(amt).toFixed(2)}
+                    {CUR}{Math.abs(amt).toFixed(2)}
                   </Text>
                   <Text style={[s.friendStatus, { color: amt>0? COLORS.primary: COLORS.owe }]}>
                     {amt>0 ? 'owes you' : 'you owe'}
@@ -355,7 +356,7 @@ export default function DashboardScreen({ navigation }) {
             )}
           </View>
           <Text style={[s.budgetAmt, overBudget && { color: COLORS.owe }]}>
-            ₹{totalMonthlySpending.toLocaleString('en-IN', { maximumFractionDigits:0 })}
+            {CUR}{totalMonthlySpending.toLocaleString('en-IN', { maximumFractionDigits:0 })}
           </Text>
           <View style={s.budgetBarBg}>
             <View style={[s.budgetBarFill, {
@@ -364,12 +365,12 @@ export default function DashboardScreen({ navigation }) {
             }]} />
           </View>
           <Text style={[s.budgetSub, overBudget && { color: COLORS.owe }]}>
-            {budgetPct}% of ₹{monthlyBudget.toLocaleString('en-IN')} budget used
+            {budgetPct}% of {CUR}{monthlyBudget.toLocaleString('en-IN')} budget used
             {overBudget && ' — Consider slowing down!'}
           </Text>
           {utilizationPct > 0 && (
             <Text style={{ color: COLORS.textMuted, fontSize:11, marginTop:4 }}>
-              Group trips: {utilizationPct}% of projected ₹{projectedBudget.toLocaleString('en-IN')} budget utilized
+              Group trips: {utilizationPct}% of projected {CUR}{projectedBudget.toLocaleString('en-IN')} budget utilized
             </Text>
           )}
         </View>
@@ -405,7 +406,7 @@ export default function DashboardScreen({ navigation }) {
                       <View style={{ width:10, height:10, borderRadius:5, backgroundColor:item.color }} />
                       <Text style={s.legendName} numberOfLines={1}>{item.name}</Text>
                     </View>
-                    <Text style={s.legendAmt}>₹{item.value.toLocaleString('en-IN')}</Text>
+                    <Text style={s.legendAmt}>{CUR}{item.value.toLocaleString('en-IN')}</Text>
                     <Text style={s.legendPct}>{item.percentage}% share</Text>
                   </View>
                 ))}
@@ -462,8 +463,8 @@ export default function DashboardScreen({ navigation }) {
                       <View>
                         <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:4 }}>
                           <Text style={{ color: COLORS.textMuted, fontSize:11 }}>
-                            Total: ₹{total.toLocaleString('en-IN')}
-                            {perPerson > 0 ? `  ·  ₹${perPerson.toLocaleString('en-IN')}/person` : ''}
+                            Total: {CUR}{total.toLocaleString('en-IN')}
+                            {perPerson > 0 ? `  ·  ${CUR}${perPerson.toLocaleString('en-IN')}/person` : ''}
                           </Text>
                           <Text style={{ color: COLORS.primary, fontSize:11, fontWeight:'700' }}>Settled: {settledPct}%</Text>
                         </View>
@@ -515,7 +516,7 @@ export default function DashboardScreen({ navigation }) {
               <View key={b.id} style={s.reminderRow}>
                 <View>
                   <Text style={s.reminderTitle}>{b.title}</Text>
-                  <Text style={{ color: COLORS.textMuted, fontSize:12 }}>₹{(b.amount/(b.split_among||[1]).length).toFixed(2)}</Text>
+                  <Text style={{ color: COLORS.textMuted, fontSize:12 }}>{CUR}{(b.amount/(b.split_among||[1]).length).toFixed(2)}</Text>
                 </View>
                 <ReminderBadge date={b.reminder_date} />
               </View>
@@ -544,7 +545,7 @@ export default function DashboardScreen({ navigation }) {
                   <Text style={{ color: COLORS.textMuted, fontSize:13 }}>Pay to</Text>
                   <Text style={{ color: COLORS.text, fontWeight:'800', fontSize:20, marginTop:4 }}>{settleModal.name}</Text>
                   <Text style={{ color: COLORS.primary, fontWeight:'900', fontSize:32, marginTop:8 }}>
-                    ₹{settleModal.amount.toFixed(2)}
+                    {CUR}{settleModal.amount.toFixed(2)}
                   </Text>
                   <Text style={{ color: COLORS.textMuted, fontSize:12, marginTop:4 }}>UPI: {settleModal.upiId}</Text>
                 </View>

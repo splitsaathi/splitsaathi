@@ -8,6 +8,8 @@ import { signOut } from '../../services/auth';
 
 export default function AccountScreen({ navigation }) {
   const { profile, clear }   = useAuthStore();
+  const CUR = profile?.currency_symbol || '₹';
+  const CUR_CODE = profile?.currency_code || 'INR';
   const { groups }            = useGroupStore();
   const { bills }             = useBillStore();
   const { friends }           = useFriendStore();
@@ -27,7 +29,7 @@ export default function AccountScreen({ navigation }) {
     ]},
     { title: 'Preferences', items: [
       { icon: '🔔', label: 'Notifications', right: <Switch value={notifs} onValueChange={setNotifs} trackColor={{ true: COLORS.primary }} thumbColor="#fff" /> },
-      { icon: '₹',  label: 'Currency',      right: <Text style={s.menuRight}>INR ₹</Text> },
+      { icon: CUR,  label: 'Currency',      right: <Text style={s.menuRight}>{CUR_CODE} {CUR}</Text> },
     ]},
     { title: 'Rewards', items: [
       { icon: '🎁', label: 'Refer & Earn',     onPress: () => navigation.navigate('ReferAndEarn') },

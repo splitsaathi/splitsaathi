@@ -8,6 +8,7 @@ import Avatar from '../../components/Avatar';
 
 export default function ActivityScreen() {
   const { profile }          = useAuthStore();
+  const CUR = profile?.currency_symbol || '₹';
   const { bills, getBalances } = useBillStore();
   const { groups, groupMembers } = useGroupStore();
 
@@ -46,11 +47,11 @@ export default function ActivityScreen() {
         <View style={styles.summaryGrid}>
           <View style={[styles.summaryCard, { borderTopColor: COLORS.primary }]}>
             <Text style={styles.summaryLabel}>You're owed</Text>
-            <Text style={[styles.summaryVal, { color: COLORS.primary }]}>₹{totalOwed.toFixed(2)}</Text>
+            <Text style={[styles.summaryVal, { color: COLORS.primary }]}>{CUR}{totalOwed.toFixed(2)}</Text>
           </View>
           <View style={[styles.summaryCard, { borderTopColor: COLORS.danger }]}>
             <Text style={styles.summaryLabel}>You owe</Text>
-            <Text style={[styles.summaryVal, { color: COLORS.danger }]}>₹{totalOwe.toFixed(2)}</Text>
+            <Text style={[styles.summaryVal, { color: COLORS.danger }]}>{CUR}{totalOwe.toFixed(2)}</Text>
           </View>
         </View>
 
@@ -64,7 +65,7 @@ export default function ActivityScreen() {
                   <Text style={{ fontSize: 20 }}>{CAT_ICONS[b.category] || '📦'}</Text>
                   <View style={{ marginLeft: 12 }}>
                     <Text style={styles.billTitle}>{b.title}</Text>
-                    <Text style={styles.billMeta}>{getGroupName(b.group_id)} · ₹{(b.amount / (b.split_among || [1]).length).toFixed(2)}</Text>
+                    <Text style={styles.billMeta}>{getGroupName(b.group_id)} · {CUR}{(b.amount / (b.split_among || [1]).length).toFixed(2)}</Text>
                   </View>
                 </View>
                 <ReminderBadge date={b.reminder_date} />
@@ -100,16 +101,16 @@ export default function ActivityScreen() {
                     {getGroupName(b.group_id)} · {dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                   </Text>
                   <Text style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>
-                    {iPaid ? `You paid ₹${b.amount}` : `${getName(b.paid_by)} paid ₹${b.amount}`}
+                    {iPaid ? `You paid ${CUR}${b.amount}` : `${getName(b.paid_by)} paid ${CUR}${b.amount}`}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   {allSett
                     ? <Text style={{ color: COLORS.primary, fontSize: 12, fontWeight: '700' }}>Settled</Text>
                     : iPaid
-                      ? <Text style={[styles.actAmt, { color: COLORS.primary }]}>+₹{(pp * (sp.length - 1)).toFixed(2)}</Text>
+                      ? <Text style={[styles.actAmt, { color: COLORS.primary }]}>+{CUR}{(pp * (sp.length - 1)).toFixed(2)}</Text>
                       : iOwe
-                        ? <Text style={[styles.actAmt, { color: COLORS.owe }]}>-₹{pp.toFixed(2)}</Text>
+                        ? <Text style={[styles.actAmt, { color: COLORS.owe }]}>-{CUR}{pp.toFixed(2)}</Text>
                         : null
                   }
                   <Text style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 2 }}>

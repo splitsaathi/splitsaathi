@@ -14,6 +14,7 @@ import { scheduleReminder, cancelReminder } from '../../services/notifications';
 export default function BillDetailScreen({ route, navigation }) {
   const { bill: initialBill, group, members } = route.params;
   const { profile } = useAuthStore();
+  const CUR = profile?.currency_symbol || '₹';
   const { settle, setReminder, removeReminder, bills } = useBillStore();
 
   const [showReminderPicker, setShowReminderPicker] = useState(false);
@@ -68,7 +69,7 @@ export default function BillDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        <Text style={styles.amount}>₹{bill.amount.toLocaleString()}</Text>
+        <Text style={styles.amount}>{CUR}{bill.amount.toLocaleString()}</Text>
 
         {allSettled && (
           <View style={styles.settledBanner}>
@@ -100,7 +101,7 @@ export default function BillDetailScreen({ route, navigation }) {
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={[styles.splitAmt, { color: isSettled ? COLORS.primary : COLORS.warning }]}>
-                    {isSettled ? '✓ Settled' : `₹${pp.toFixed(2)}`}
+                    {isSettled ? '✓ Settled' : `${CUR}${pp.toFixed(2)}`}
                   </Text>
                   {canPayViaApp && (
                     <TouchableOpacity style={styles.payBtn} onPress={handlePayNow}>

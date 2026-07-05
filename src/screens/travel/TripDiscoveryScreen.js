@@ -40,6 +40,7 @@ async function fetchDiscoverTrips() {
     id: r.slug || r.id,
     title: r.title,
     state: r.state,
+    country: r.country || 'India',
     lat: r.lat,
     lon: r.lon,
     category: r.category,
@@ -111,6 +112,10 @@ export default function TripDiscoveryScreen({ navigation }) {
   const [search,      setSearch]      = useState('');
   const [filter,      setFilter]      = useState('All');
   const [priceFilter, setPriceFilter] = useState('All');
+  const [regionFilter, setRegionFilter] = useState('All'); // 'All' | 'India' | 'International'
+  const [userCurrency, setUserCurrency] = useState({ code: 'INR', symbol: '₹' }); // from signup profile
+  const [currency,    setCurrency]    = useState('INR'); // 'INR' | user's own currency code
+  const [rates,       setRates]       = useState({}); // live INR -> other currencies
   const [sortBy,      setSortBy]      = useState('popular');
   const [locLoading,  setLocLoading]  = useState(false);
   const [userCoords,  setUserCoords]  = useState(null);
@@ -125,7 +130,29 @@ export default function TripDiscoveryScreen({ navigation }) {
   const [syncModal,   setSyncModal]   = useState(null); // trip object
 
   useEffect(() => { if (profile?.id) loadFriends(profile.id); }, [profile?.id]);
+  useEffect(() => {
+    if (!profile?.id) return;
+    fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}&select=currency_code,currency_symbol`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+    })
+      .then(res => res.json())
+      .then(rows => {
+        const p = rows?.[0];
+        if (p?.currency_code) {
+          setUserCurrency({ code: p.currency_code, symbol: p.currency_symbol || p.currency_code });
+          setCurrency(p.currency_code); // default the browse currency to the user's own
+        }
+      })
+      .catch(() => {}); // keep INR default if this fails
+  }, [profile?.id]);
   useEffect(() => { handleGetLocation(); }, []); // auto-sort nearest-to-farthest on load
+  useEffect(() => {
+    fetch('https://api.exchangerate-api.com/v4/latest/INR')
+      .then(res => res.json())
+      .then(data => { if (data?.rates) setRates(data.rates); })
+      .catch(() => {}); // silently keep INR-only display if this fails
+  }, []);
+
   useEffect(() => {
     setTripsLoading(true);
     setTripsError(false);
@@ -210,18 +237,29 @@ export default function TripDiscoveryScreen({ navigation }) {
       const s    = search.toLowerCase();
       const mSrch = !s || t.title.toLowerCase().includes(s) || t.state.toLowerCase().includes(s) || t.category.toLowerCase().includes(s) || t.tags.some(tg => tg.toLowerCase().includes(s));
       const mType  = filter === 'All' || t.category === filter;
+      const mRegion = regionFilter === 'All' ||
+        (regionFilter === 'India' && t.country === 'India') ||
+        (regionFilter === 'International' && t.country !== 'India');
       const mPrice = priceFilter === 'All' ||
         (priceFilter === 'Budget Friendly (Under ₹7k)' && t.startsFrom < 7000) ||
         (priceFilter === 'Premium (Above ₹7k)'         && t.startsFrom >= 7000);
       const mDist = sortBy === 'distance' ? t.dist <= 5000 : true;
-      return mSrch && mType && mPrice && mDist;
+      return mSrch && mType && mRegion && mPrice && mDist;
     }).sort((a, b) => {
       if (sortBy === 'distance')   return a.dist - b.dist;
       if (sortBy === 'price_asc')  return a.startsFrom - b.startsFrom;
       if (sortBy === 'price_desc') return b.startsFrom - a.startsFrom;
       return b.rating - a.rating;
     });
-  }, [tripsWithDist, search, filter, priceFilter, sortBy]);
+  }, [tripsWithDist, search, filter, regionFilter, priceFilter, sortBy]);
+
+  const formatPrice = (inrAmount) => {
+    if (currency !== 'INR' && rates[currency]) {
+      const converted = Math.round(inrAmount * rates[currency]);
+      return `${userCurrency.symbol}${converted.toLocaleString('en-US')}`;
+    }
+    return `₹${inrAmount.toLocaleString('en-IN')}`;
+  };
 
   const renderTrip = ({ item: trip }) => {
     const isEx = expanded[trip.id];
@@ -285,9 +323,9 @@ export default function TripDiscoveryScreen({ navigation }) {
                 ))}
               </View>
               <View style={s.statsRow}>
-                <View style={s.statBox}><Text style={s.statLabel}>🏨 STAY</Text><Text style={s.statVal}>₹{trip.breakdown.stay.toLocaleString('en-IN')}</Text></View>
-                <View style={s.statBox}><Text style={s.statLabel}>🚗 TRAVEL</Text><Text style={s.statVal}>₹{trip.breakdown.travel.toLocaleString('en-IN')}</Text></View>
-                <View style={s.statBox}><Text style={s.statLabel}>🍔 FOOD</Text><Text style={s.statVal}>₹{trip.breakdown.food.toLocaleString('en-IN')}</Text></View>
+                <View style={s.statBox}><Text style={s.statLabel}>🏨 STAY</Text><Text style={s.statVal}>{formatPrice(trip.breakdown.stay)}</Text></View>
+                <View style={s.statBox}><Text style={s.statLabel}>🚗 TRAVEL</Text><Text style={s.statVal}>{formatPrice(trip.breakdown.travel)}</Text></View>
+                <View style={s.statBox}><Text style={s.statLabel}>🍔 FOOD</Text><Text style={s.statVal}>{formatPrice(trip.breakdown.food)}</Text></View>
               </View>
             </>
           )}
@@ -295,7 +333,7 @@ export default function TripDiscoveryScreen({ navigation }) {
           <View style={s.cardFooter}>
             <View>
               <Text style={s.priceLabel}>STARTS FROM</Text>
-              <Text style={s.priceVal}>₹{trip.startsFrom.toLocaleString('en-IN')}</Text>
+              <Text style={s.priceVal}>{formatPrice(trip.startsFrom)}</Text>
             </View>
             <View style={{ flexDirection:'row', gap:8 }}>
               <TouchableOpacity style={s.expandBtn} onPress={() => setExpanded(p => ({ ...p, [trip.id]: !p[trip.id] }))}>
@@ -382,6 +420,14 @@ export default function TripDiscoveryScreen({ navigation }) {
               </TouchableOpacity>
             )}
           </View>
+          <Text style={s.filterLabel}>REGION</Text>
+          <View style={{ flexDirection:'row', gap:8, marginBottom:10 }}>
+            {['All','India','International'].map(r => (
+              <TouchableOpacity key={r} style={[s.filterChip, regionFilter===r && s.filterChipActive]} onPress={() => setRegionFilter(r)}>
+                <Text style={[s.filterChipText, regionFilter===r && { color:'#fff' }]}>{r === 'All' ? '🌍 All' : r === 'India' ? '🇮🇳 India' : '✈️ International'}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
           <Text style={s.filterLabel}>CATEGORY</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom:10 }}>
             {FILTERS.map(f => (
@@ -398,6 +444,17 @@ export default function TripDiscoveryScreen({ navigation }) {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          <Text style={s.filterLabel}>CURRENCY</Text>
+          <View style={{ flexDirection:'row', gap:8, marginBottom:10 }}>
+            <TouchableOpacity style={[s.filterChip, currency==='INR' && s.filterChipActive]} onPress={() => setCurrency('INR')}>
+              <Text style={[s.filterChipText, currency==='INR' && { color:'#fff' }]}>₹ INR</Text>
+            </TouchableOpacity>
+            {userCurrency.code !== 'INR' && (
+              <TouchableOpacity style={[s.filterChip, currency===userCurrency.code && s.filterChipActive]} onPress={() => setCurrency(userCurrency.code)}>
+                <Text style={[s.filterChipText, currency===userCurrency.code && { color:'#fff' }]}>{userCurrency.symbol} {userCurrency.code}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <Text style={s.filterLabel}>SORT BY</Text>
           <View style={{ flexDirection:'row', gap:8, flexWrap:'wrap' }}>
             {SORT_OPT.map(([val,lbl]) => (
@@ -434,7 +491,7 @@ export default function TripDiscoveryScreen({ navigation }) {
       </View>
 
       <FlatList
-        key={`${filter}-${priceFilter}-${sortBy}-${search}`}
+        key={`${filter}-${priceFilter}-${regionFilter}-${currency}-${sortBy}-${search}`}
         data={filtered}
         extraData={filtered}
         keyExtractor={item => item.id}

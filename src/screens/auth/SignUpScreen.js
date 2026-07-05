@@ -1,17 +1,63 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Platform, ScrollView, ActivityIndicator,
+  Platform, ScrollView, ActivityIndicator, Modal, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS } from '../../theme';
 import { signUp } from '../../services/auth';
+
+const SUPABASE_URL = 'https://bmhgnbvaufeafhennvaj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtaGduYnZhdWZlYWZoZW5udmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI4MTcsImV4cCI6MjA5NzU0ODgxN30.ZQXBEI23RMG5qIJAmGdKvcgPciPj2Jlpyd3XqSRSRpc';
+
+const COUNTRIES = [
+  { name: 'India', code: 'IN', currency: 'INR', symbol: '₹' },
+  { name: 'United States', code: 'US', currency: 'USD', symbol: '$' },
+  { name: 'United Kingdom', code: 'GB', currency: 'GBP', symbol: '£' },
+  { name: 'United Arab Emirates', code: 'AE', currency: 'AED', symbol: 'د.إ' },
+  { name: 'Canada', code: 'CA', currency: 'CAD', symbol: 'C$' },
+  { name: 'Australia', code: 'AU', currency: 'AUD', symbol: 'A$' },
+  { name: 'Singapore', code: 'SG', currency: 'SGD', symbol: 'S$' },
+  { name: 'Germany', code: 'DE', currency: 'EUR', symbol: '€' },
+  { name: 'France', code: 'FR', currency: 'EUR', symbol: '€' },
+  { name: 'Italy', code: 'IT', currency: 'EUR', symbol: '€' },
+  { name: 'Spain', code: 'ES', currency: 'EUR', symbol: '€' },
+  { name: 'Netherlands', code: 'NL', currency: 'EUR', symbol: '€' },
+  { name: 'Japan', code: 'JP', currency: 'JPY', symbol: '¥' },
+  { name: 'China', code: 'CN', currency: 'CNY', symbol: '¥' },
+  { name: 'South Korea', code: 'KR', currency: 'KRW', symbol: '₩' },
+  { name: 'Malaysia', code: 'MY', currency: 'MYR', symbol: 'RM' },
+  { name: 'Thailand', code: 'TH', currency: 'THB', symbol: '฿' },
+  { name: 'Indonesia', code: 'ID', currency: 'IDR', symbol: 'Rp' },
+  { name: 'Philippines', code: 'PH', currency: 'PHP', symbol: '₱' },
+  { name: 'Vietnam', code: 'VN', currency: 'VND', symbol: '₫' },
+  { name: 'Nepal', code: 'NP', currency: 'NPR', symbol: 'रु' },
+  { name: 'Sri Lanka', code: 'LK', currency: 'LKR', symbol: 'Rs' },
+  { name: 'Bangladesh', code: 'BD', currency: 'BDT', symbol: '৳' },
+  { name: 'Pakistan', code: 'PK', currency: 'PKR', symbol: '₨' },
+  { name: 'Saudi Arabia', code: 'SA', currency: 'SAR', symbol: 'ر.س' },
+  { name: 'Qatar', code: 'QA', currency: 'QAR', symbol: 'ر.ق' },
+  { name: 'South Africa', code: 'ZA', currency: 'ZAR', symbol: 'R' },
+  { name: 'Nigeria', code: 'NG', currency: 'NGN', symbol: '₦' },
+  { name: 'Kenya', code: 'KE', currency: 'KES', symbol: 'KSh' },
+  { name: 'Brazil', code: 'BR', currency: 'BRL', symbol: 'R$' },
+  { name: 'Mexico', code: 'MX', currency: 'MXN', symbol: '$' },
+  { name: 'Russia', code: 'RU', currency: 'RUB', symbol: '₽' },
+  { name: 'Switzerland', code: 'CH', currency: 'CHF', symbol: 'CHF' },
+  { name: 'Sweden', code: 'SE', currency: 'SEK', symbol: 'kr' },
+  { name: 'Norway', code: 'NO', currency: 'NOK', symbol: 'kr' },
+  { name: 'New Zealand', code: 'NZ', currency: 'NZD', symbol: 'NZ$' },
+  { name: 'Other / Not Listed', code: 'XX', currency: 'USD', symbol: '$' },
+];
 
 export default function SignUpScreen({ navigation }) {
   const [name,     setName]     = useState('');
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [confirm,  setConfirm]  = useState('');
+  const [country,  setCountry]  = useState(null);
+  const [stateVal, setStateVal] = useState('');
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
   const [success,  setSuccess]  = useState(false);
@@ -21,16 +67,37 @@ export default function SignUpScreen({ navigation }) {
     if (!email.includes('@')) { setError('Please enter a valid email!');              return; }
     if (password.length < 6)  { setError('Password must be at least 6 characters!'); return; }
     if (password !== confirm)  { setError('Passwords do not match!');                 return; }
+    if (!country)              { setError('Please select your country!');             return; }
+    if (!stateVal.trim())      { setError('Please enter your state!');                return; }
 
     setLoading(true); setError('');
-    const { error: err } = await signUp(email.trim(), password, name.trim());
+    const result = await signUp(email.trim(), password, name.trim());
+    const err = result?.error;
     if (err) {
       if (err.message.includes('already registered'))
         setError('This email is already registered! Please log in.');
       else setError(err.message);
-    } else {
-      setSuccess(true);
+      setLoading(false);
+      return;
     }
+
+    try {
+      const userId = result?.data?.user?.id || result?.user?.id || result?.data?.session?.user?.id;
+      if (userId) {
+        await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+          method: 'PATCH',
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({
+            country: country.name,
+            state: stateVal.trim(),
+            currency_code: country.currency,
+            currency_symbol: country.symbol,
+          }),
+        });
+      }
+    } catch (e) { /* non-fatal */ }
+
+    setSuccess(true);
     setLoading(false);
   };
 
@@ -108,9 +175,50 @@ export default function SignUpScreen({ navigation }) {
           value={confirm}
           onChangeText={t => { setConfirm(t); setError(''); }}
           secureTextEntry
+          returnKeyType="next"
+        />
+
+        <Text style={s.label}>COUNTRY * (sets your currency)</Text>
+        <TouchableOpacity style={s.input} onPress={() => setShowCountryPicker(true)}>
+          <Text style={{ color: country ? COLORS.text : COLORS.textMuted, fontSize: 16 }}>
+            {country ? `${country.symbol}  ${country.name} (${country.currency})` : 'Select your country'}
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={s.label}>STATE / REGION *</Text>
+        <TextInput
+          style={s.input}
+          placeholder="e.g. Maharashtra, California, Ontario..."
+          placeholderTextColor={COLORS.textMuted}
+          value={stateVal}
+          onChangeText={t => { setStateVal(t); setError(''); }}
           returnKeyType="done"
           onSubmitEditing={handleSignUp}
         />
+
+        <Modal visible={showCountryPicker} animationType="slide" transparent onRequestClose={() => setShowCountryPicker(false)}>
+          <View style={{ flex:1, backgroundColor:'rgba(0,0,0,0.6)', justifyContent:'flex-end' }}>
+            <View style={{ backgroundColor: COLORS.bg, borderTopLeftRadius:20, borderTopRightRadius:20, maxHeight:'70%', padding: SPACING.md }}>
+              <Text style={{ color: COLORS.text, fontWeight:'800', fontSize:18, marginBottom:12 }}>Select Your Country</Text>
+              <FlatList
+                data={COUNTRIES}
+                keyExtractor={c => c.code}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={{ paddingVertical:14, borderBottomWidth:1, borderBottomColor: COLORS.border, flexDirection:'row', justifyContent:'space-between' }}
+                    onPress={() => { setCountry(item); setShowCountryPicker(false); setError(''); }}
+                  >
+                    <Text style={{ color: COLORS.text, fontSize:16 }}>{item.name}</Text>
+                    <Text style={{ color: COLORS.textMuted, fontSize:15 }}>{item.symbol} {item.currency}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+              <TouchableOpacity style={{ marginTop:12, alignItems:'center', padding:12 }} onPress={() => setShowCountryPicker(false)}>
+                <Text style={{ color: COLORS.primary, fontWeight:'700' }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         {error ? <Text style={s.error}>{error}</Text> : null}
 
