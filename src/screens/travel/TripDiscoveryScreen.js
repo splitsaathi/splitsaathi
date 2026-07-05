@@ -180,7 +180,7 @@ export default function TripDiscoveryScreen({ navigation }) {
   const handleCreateGroup = (trip) => {
     Alert.alert(
       '👥 Create Trip Group',
-      `"${trip.title}" ke liye ek split group banana chahte ho?\n\n₹${trip.startsFrom.toLocaleString('en-IN')}/person ke hisaab se expenses track kar sakte ho!`,
+      `Create a split group for "${trip.title}"?\n\nTrack expenses at ${formatPrice(trip.startsFrom)}/person!`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -206,7 +206,7 @@ export default function TripDiscoveryScreen({ navigation }) {
       const memberIds = selectedFriends.map(f => f.id);
       const { error } = await createGroup(groupName, '✈️', profile.id, memberIds);
       if (error) {
-        Alert.alert('Error', error.message || 'Group create nahi ho saka');
+        Alert.alert('Error', error.message || 'Could not create group. Please try again.');
         setActivating(false);
         return;
       }
@@ -214,11 +214,11 @@ export default function TripDiscoveryScreen({ navigation }) {
       setActivating(false);
       Alert.alert(
         '✅ Group Created!',
-        `"${groupName}" group ban gaya!\nAb Groups tab mein jaake expenses add karo.`,
+        `"${groupName}" group created!\nGo to the Groups tab to start adding expenses.`,
         [{ text: 'Groups Tab Kholein →', onPress: () => navigation.getParent()?.navigate('Groups') }, { text: 'OK' }]
       );
     } catch (e) {
-      Alert.alert('Error', 'Kuch problem aayi, dobara try karo');
+      Alert.alert('Error', 'Something went wrong, please try again.');
       setActivating(false);
     }
   };
@@ -357,7 +357,7 @@ export default function TripDiscoveryScreen({ navigation }) {
             console.log('Activate pressed', trip.title);
             Alert.alert(
               '🚀 Activate & Sync Split Group',
-              `"${trip.title}" trip ke liye group banana chahte ho?\n\n✅ Auto group create hoga\n👥 Friends add kar sakte ho\n💰 Expenses track hoga\n\nEstimated: ₹${trip.startsFrom.toLocaleString('en-IN')}/person`,
+              `Create a group for the "${trip.title}" trip?\n\n✅ Auto-creates the group\n👥 Add friends to it\n💰 Track expenses together\n\nEstimated: ${formatPrice(trip.startsFrom)}/person`,
               [
                 { text: 'Cancel', style: 'cancel' },
                 {
@@ -543,7 +543,7 @@ export default function TripDiscoveryScreen({ navigation }) {
 
                 {friends.length === 0 ? (
                   <View style={{ alignItems:'center', paddingVertical:16 }}>
-                    <Text style={{ color: COLORS.textMuted, fontSize:13, textAlign:'center', marginBottom:12 }}>Pehle friends add karo Groups mein jaane se pehle</Text>
+                    <Text style={{ color: COLORS.textMuted, fontSize:13, textAlign:'center', marginBottom:12 }}>Add some friends first before creating a group</Text>
                     <TouchableOpacity style={{ borderWidth:1, borderColor: COLORS.primary, borderRadius:8, paddingHorizontal:16, paddingVertical:8 }}
                       onPress={() => { setSyncModal(null); navigation.getParent()?.navigate('Friends'); }}>
                       <Text style={{ color: COLORS.primary, fontWeight:'700' }}>+ Friends Add Karo</Text>
