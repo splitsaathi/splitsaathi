@@ -9,14 +9,14 @@ import { signOut } from '../../services/auth';
 import { getProfile } from '../../services/database';
 import { supabase } from '../../services/supabase';
 
-function BarChart({ data }) {
+function BarChart({ data, currencySymbol = '₹' }) {
   const maxVal = Math.max(...data.map(d => d.value), 1);
   return (
     <View style={{ flexDirection:'row', alignItems:'flex-end', height:90, gap:6, paddingHorizontal:4 }}>
       {data.map((d, i) => (
         <View key={i} style={{ flex:1, alignItems:'center' }}>
           <Text style={{ fontSize:9, color: COLORS.textMuted, marginBottom:2 }}>
-            {d.value > 0 ? `${CUR}${(d.value/1000).toFixed(0)}k` : ''}
+            {d.value > 0 ? `${currencySymbol}${(d.value/1000).toFixed(0)}k` : ''}
           </Text>
           <View style={{ width:'75%', height: Math.max(4, (d.value/maxVal)*65), backgroundColor: d.color||COLORS.primary, borderRadius:4 }} />
           <Text style={{ fontSize:9, color: COLORS.textMuted, marginTop:4, textAlign:'center' }} numberOfLines={1}>{d.label}</Text>
@@ -394,7 +394,7 @@ export default function DashboardScreen({ navigation }) {
                 <Text style={{ color: COLORS.textMuted, fontSize:13 }}>Add bills to see your spending breakdown</Text>
               </View>
             ) : chartType === 'bar' ? (
-              <BarChart data={displayChart} />
+              <BarChart data={displayChart} currencySymbol={CUR} />
             ) : (
               <HorizontalBreakdown data={displayChart} />
             )}
