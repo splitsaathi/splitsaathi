@@ -181,18 +181,11 @@ export default function LoginScreen({ navigation }) {
 
           {/* Hero Graphic */}
           <View style={s.heroRight}>
-            <View style={s.heroGraphic}>
-              {/* Geometric airplane pattern */}
-              <View style={[s.tri, { top: 20, left: 60, borderBottomColor: '#1a9b8a' }]} />
-              <View style={[s.tri, { top: 60, left: 20, borderBottomColor: '#0d7a6b' }]} />
-              <View style={[s.tri, { top: 60, left: 80, borderBottomColor: '#2bc0a8' }]} />
-              <View style={[s.tri, { top: 100, left: 40, borderBottomColor: '#1a9b8a' }]} />
-              <View style={[s.tri, { top: 100, left: 100, borderBottomColor: '#0d7a6b' }]} />
-              <View style={[s.tri, { top: 140, left: 60, borderBottomColor: '#2bc0a8' }]} />
-              <View style={[s.triDark, { top: 40, left: 40, borderBottomColor: '#0a4a42' }]} />
-              <View style={[s.triDark, { top: 80, left: 60, borderBottomColor: '#0a4a42' }]} />
-              <View style={[s.triDark, { top: 120, left: 20, borderBottomColor: '#0a4a42' }]} />
-            </View>
+            <Image
+              source={require('../../assets/images/hero-friends.png')}
+              style={s.heroImage}
+              resizeMode="cover"
+            />
           </View>
         </View>
 
@@ -297,6 +290,7 @@ const s = StyleSheet.create({
   hero:        { flexDirection: 'row', padding: 24, paddingTop: 40, backgroundColor: '#f7f7f2', minHeight: 320 },
   heroLeft:    { flex: 1.2 },
   heroRight:   { flex: 0.8, alignItems: 'center', justifyContent: 'center' },
+  heroImage:   { width: 260, height: 320, borderRadius: 24, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
   heroHeadline:{ fontSize: 28, fontWeight: '800', color: '#1a1a1a', lineHeight: 36, marginBottom: 4 },
   heroSub:     { marginBottom: 16 },
   heroHighlight:{ fontSize: 28, fontWeight: '800', color: GREEN },
