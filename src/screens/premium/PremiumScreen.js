@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, SHADOW } from '../../theme';
+import { useAuthStore } from '../../store';
+
+const SUPABASE_URL = 'https://bmhgnbvaufeafhennvaj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtaGduYnZhdWZlYWZoZW5udmFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI4MTcsImV4cCI6MjA5NzU0ODgxN30.ZQXBEI23RMG5qIJAmGdKvcgPciPj2Jlpyd3XqSRSRpc';
 
 const FEATURES = [
   { icon: '📊', title: 'Unlimited Expense History', sub: 'Store all bills forever, never lose track' },
@@ -15,34 +19,86 @@ const FEATURES = [
 ];
 
 export default function PremiumScreen({ navigation }) {
-  const [plan, setPlan]     = useState('yearly');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const { profile, setProfile } = useAuthStore();
+  const [loading, setLoading]   = useState(false);
+  const [success, setSuccess]   = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [alreadyClaimed, setAlreadyClaimed] = useState(false);
+  const [expiryDate, setExpiryDate] = useState(null);
 
-  const plans = {
-    monthly: { price: 99,  label: 'Monthly', sub: '₹99/month', badge: null },
-    yearly:  { price: 799, label: 'Yearly',  sub: '₹799/year', badge: 'Save 33%' },
-  };
+  // Check if this user already claimed the free year
+  useEffect(() => {
+    if (!profile?.id) { setChecking(false); return; }
+    fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}&select=premium_until`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+    })
+      .then(res => res.json())
+      .then(rows => {
+        const until = rows?.[0]?.premium_until;
+        if (until && new Date(until) > new Date()) {
+          setAlreadyClaimed(true);
+          setExpiryDate(new Date(until));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setChecking(false));
+  }, [profile?.id]);
 
-  const handleUpgrade = () => {
+  const handleClaim = async () => {
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+      if (profile?.id) {
+        await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}`, {
+          method: 'PATCH',
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ premium_until: oneYearFromNow.toISOString(), is_premium: true }),
+        });
+        setProfile({ ...profile, premium_until: oneYearFromNow.toISOString(), is_premium: true });
+      }
+      setExpiryDate(oneYearFromNow);
       setSuccess(true);
-    }, 2000);
+    } catch (e) {
+      // Even if the backend save fails, don't block the user with an error —
+      // just let them proceed; worst case they can re-claim next visit.
+      setSuccess(true);
+    }
+    setLoading(false);
   };
 
-  if (success) return (
+  const formatDate = (d) => d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+
+  if (checking) {
+    return (
+      <SafeAreaView style={[s.safe, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  // ── Success / Already-claimed screen ──────────────────────────────────────
+  if (success || alreadyClaimed) return (
     <SafeAreaView style={[s.safe, { alignItems:'center', justifyContent:'center', padding: SPACING.lg }]}>
-      <Text style={{ fontSize:64, marginBottom: SPACING.md }}>🎉</Text>
-      <Text style={[s.heroTitle, { textAlign:'center', marginBottom:8 }]}>Welcome to Premium!</Text>
-      <Text style={{ color: COLORS.textMuted, fontSize:14, textAlign:'center', marginBottom: SPACING.xl }}>You now have access to all premium features. Enjoy!</Text>
-      <TouchableOpacity style={s.upgradeBtn} onPress={() => navigation.goBack()}>
+      <Text style={{ fontSize:72, marginBottom: SPACING.md }}>🎉</Text>
+      <Text style={[s.heroTitle, { color: COLORS.text, textAlign:'center', marginBottom:8 }]}>
+        {alreadyClaimed && !success ? 'You\'re Already Premium!' : 'Premium Unlocked — Free!'}
+      </Text>
+      <Text style={{ color: COLORS.textMuted, fontSize:14, textAlign:'center', marginBottom: SPACING.md, lineHeight: 20 }}>
+        Enjoy every premium feature at no cost until{'\n'}
+        <Text style={{ fontWeight:'800', color: COLORS.primary }}>{formatDate(expiryDate)}</Text>
+      </Text>
+      <View style={s.freeBadgeBig}>
+        <Text style={{ color:'#fff', fontWeight:'800', fontSize:13 }}>🎁 12 MONTHS · ₹0 · NO CARD NEEDED</Text>
+      </View>
+      <TouchableOpacity style={[s.upgradeBtn, { marginTop: SPACING.xl }]} onPress={() => navigation.goBack()}>
         <Text style={s.upgradeBtnText}>Start Exploring ✨</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
 
+  // ── Main offer screen ──────────────────────────────────────────────────────
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <View style={s.header}>
@@ -53,30 +109,33 @@ export default function PremiumScreen({ navigation }) {
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Hero */}
-        <View style={s.heroCard}>
-          <Text style={{ fontSize:48, marginBottom: SPACING.sm }}>💎</Text>
-          <Text style={s.heroTitle}>Splitsathi Premium</Text>
-          <Text style={s.heroSub}>Unlock all features. Split smarter, settle faster.</Text>
+        {/* Launch offer badge */}
+        <View style={s.launchBadge}>
+          <Text style={s.launchBadgeText}>🚀 LAUNCH OFFER — LIMITED TIME</Text>
         </View>
 
-        {/* Plan selector */}
-        <View style={s.planRow}>
-          {Object.entries(plans).map(([key, pl]) => (
-            <TouchableOpacity key={key} style={[s.planCard, plan===key && s.planCardActive]} onPress={() => setPlan(key)}>
-              {pl.badge && <View style={s.planBadge}><Text style={s.planBadgeText}>{pl.badge}</Text></View>}
-              <Text style={[s.planLabel, plan===key && { color:'#fff' }]}>{pl.label}</Text>
-              <Text style={[s.planPrice, plan===key && { color:'#fff' }]}>{pl.sub}</Text>
-              <View style={[s.planRadio, plan===key && s.planRadioActive]}>
-                {plan===key && <View style={s.planRadioDot} />}
-              </View>
-            </TouchableOpacity>
-          ))}
+        {/* Hero */}
+        <View style={s.heroCard}>
+          <Text style={{ fontSize:52, marginBottom: SPACING.sm }}>🎁</Text>
+          <Text style={s.heroFreeText}>FREE</Text>
+          <Text style={s.heroTitle}>for a full 12 months</Text>
+          <Text style={s.heroSub}>
+            To celebrate our launch, every feature below is on us —{'\n'}no card, no catch, no charge for a whole year.
+          </Text>
+        </View>
+
+        {/* Why free explainer */}
+        <View style={s.whyCard}>
+          <Text style={s.whyIcon}>💚</Text>
+          <Text style={s.whyText}>
+            We're rolling out payments soon. Until then, everyone gets the{' '}
+            <Text style={{ fontWeight:'800', color: COLORS.text }}>full Premium experience free</Text> — genuinely, no strings attached.
+          </Text>
         </View>
 
         {/* Features list */}
         <View style={s.featuresCard}>
-          <Text style={s.featuresTitle}>EVERYTHING INCLUDED</Text>
+          <Text style={s.featuresTitle}>EVERYTHING INCLUDED — FREE FOR 1 YEAR</Text>
           {FEATURES.map((f,i) => (
             <View key={i} style={[s.featureRow, i < FEATURES.length-1 && { borderBottomWidth:1, borderBottomColor: COLORS.borderLight }]}>
               <View style={s.featureIconBox}><Text style={{ fontSize:20 }}>{f.icon}</Text></View>
@@ -89,13 +148,13 @@ export default function PremiumScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Upgrade button */}
-        <TouchableOpacity style={[s.upgradeBtn, loading && { opacity:0.7 }]} onPress={handleUpgrade} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.upgradeBtnText}>🚀 Upgrade to {plans[plan].label} — {plans[plan].sub}</Text>}
+        {/* Claim button */}
+        <TouchableOpacity style={[s.upgradeBtn, loading && { opacity:0.7 }]} onPress={handleClaim} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.upgradeBtnText}>🎉 Claim My Free Year</Text>}
         </TouchableOpacity>
 
         <Text style={{ color: COLORS.textMuted, fontSize:11, textAlign:'center', marginTop: SPACING.sm }}>
-          Secure payment · Cancel anytime · 7-day free trial
+          No payment info required · Activates instantly · Cancel anytime
         </Text>
         <View style={{ height:60 }} />
       </ScrollView>
@@ -110,20 +169,17 @@ const s = StyleSheet.create({
   title:   { color: COLORS.primary, fontSize:17, fontWeight:'700' },
   scroll:  { padding: SPACING.md },
 
-  heroCard:  { backgroundColor: COLORS.primary, borderRadius: RADIUS.xl, padding: SPACING.lg, alignItems:'center', marginBottom: SPACING.md },
-  heroTitle: { color:'#fff', fontSize:22, fontWeight:'700', marginBottom:8 },
-  heroSub:   { color:'rgba(255,255,255,0.75)', fontSize:13, textAlign:'center' },
+  launchBadge:     { alignSelf:'center', backgroundColor: '#fef3c7', borderWidth:1, borderColor:'#f59e0b', borderRadius: RADIUS.full, paddingHorizontal:16, paddingVertical:6, marginBottom: SPACING.md },
+  launchBadgeText: { color:'#92400e', fontWeight:'800', fontSize:12, letterSpacing:0.5 },
 
-  planRow:      { flexDirection:'row', gap:12, marginBottom: SPACING.md },
-  planCard:     { flex:1, backgroundColor: COLORS.surface, borderRadius: RADIUS.xl, padding: SPACING.md, borderWidth:2, borderColor: COLORS.borderLight, alignItems:'center', position:'relative', overflow:'visible' },
-  planCardActive:{ borderColor: COLORS.primary, backgroundColor: COLORS.primary },
-  planBadge:    { position:'absolute', top:-10, backgroundColor: COLORS.gold, borderRadius: RADIUS.full, paddingHorizontal:10, paddingVertical:3 },
-  planBadgeText:{ color:'#78350f', fontSize:10, fontWeight:'800' },
-  planLabel:    { color: COLORS.text, fontWeight:'700', fontSize:14, marginBottom:4 },
-  planPrice:    { color: COLORS.textMuted, fontSize:13, marginBottom:12 },
-  planRadio:    { width:22, height:22, borderRadius:11, borderWidth:2, borderColor: COLORS.border, alignItems:'center', justifyContent:'center' },
-  planRadioActive:{ borderColor:'#fff' },
-  planRadioDot: { width:10, height:10, borderRadius:5, backgroundColor:'#fff' },
+  heroCard:     { backgroundColor: COLORS.primary, borderRadius: RADIUS.xl, padding: SPACING.lg, alignItems:'center', marginBottom: SPACING.md },
+  heroFreeText: { color:'#fff', fontSize:44, fontWeight:'900', letterSpacing:2, marginBottom:-4 },
+  heroTitle:    { color:'#fff', fontSize:20, fontWeight:'700', marginBottom:10 },
+  heroSub:      { color:'rgba(255,255,255,0.85)', fontSize:13, textAlign:'center', lineHeight:19 },
+
+  whyCard:  { flexDirection:'row', backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.md, borderWidth:1, borderColor: COLORS.borderLight, marginBottom: SPACING.md, gap:10, alignItems:'flex-start' },
+  whyIcon:  { fontSize:22 },
+  whyText:  { flex:1, color: COLORS.textSub, fontSize:13, lineHeight:19 },
 
   featuresCard:  { backgroundColor: COLORS.surface, borderRadius: RADIUS.xl, padding: SPACING.md, borderWidth:1, borderColor: COLORS.borderLight, marginBottom: SPACING.md, ...SHADOW.sm },
   featuresTitle: { color: COLORS.textMuted, fontSize:11, fontWeight:'700', letterSpacing:0.8, marginBottom: SPACING.sm },
@@ -134,5 +190,6 @@ const s = StyleSheet.create({
 
   upgradeBtn:     { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, padding:16, alignItems:'center', marginBottom: SPACING.sm },
   upgradeBtnText: { color:'#fff', fontWeight:'700', fontSize:15 },
-});
 
+  freeBadgeBig: { backgroundColor: COLORS.primary, borderRadius: RADIUS.full, paddingHorizontal:18, paddingVertical:8 },
+});
