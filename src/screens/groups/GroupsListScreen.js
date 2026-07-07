@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore, useGroupStore, useBillStore } from '../../store';
@@ -10,8 +10,20 @@ export default function GroupsListScreen({ navigation }) {
   const { profile }          = useAuthStore();
   const { groups, groupMembers, loadGroups } = useGroupStore();
   const { bills, getBalances } = useBillStore();
+  const CUR = profile?.currency_symbol || '₹';
 
   useEffect(() => { if (profile?.id) loadGroups(profile.id); }, [profile?.id]);
+
+  // Overall net across every group — Splitwise-style summary banner
+  const overallNet = useMemo(() => {
+    return groups.reduce((sum, g) => {
+      const gb  = bills[g.id] || [];
+      const bal = getBalances(gb, profile?.id);
+      return sum + Object.values(bal).reduce((a, b) => a + b, 0);
+    }, 0);
+  }, [groups, bills, profile?.id]);
+
+  const settled = Math.abs(overallNet) < 0.01;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -21,6 +33,21 @@ export default function GroupsListScreen({ navigation }) {
           <Text style={styles.addBtnText}>+ Group</Text>
         </TouchableOpacity>
       </View>
+
+      {groups.length > 0 && (
+        <View style={styles.summaryBanner}>
+          {settled ? (
+            <Text style={styles.summarySettled}>You're all settled up 🎉</Text>
+          ) : (
+            <Text style={styles.summaryText}>
+              Overall, {overallNet > 0 ? 'you are owed ' : 'you owe '}
+              <Text style={[styles.summaryAmt, { color: overallNet > 0 ? '#2e7d32' : '#e05353' }]}>
+                {CUR}{Math.abs(overallNet).toFixed(2)}
+              </Text>
+            </Text>
+          )}
+        </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {groups.length === 0 ? (
@@ -42,6 +69,7 @@ export default function GroupsListScreen({ navigation }) {
                 memberCount={(groupMembers[g.id] || []).length}
                 billCount={gb.length}
                 net={net}
+                currencySymbol={CUR}
                 onPress={() => navigation.navigate('GroupDetail', { group: g })}
               />
             );
@@ -58,6 +86,11 @@ const styles = StyleSheet.create({
   title:  { color: COLORS.text, fontSize: 22, fontWeight: '800' },
   addBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingHorizontal: 16, paddingVertical: 9 },
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  scroll: { padding: SPACING.md, paddingBottom: 100 },
-});
 
+  summaryBanner:  { backgroundColor: COLORS.surface, paddingVertical: 12, paddingHorizontal: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  summaryText:    { color: COLORS.textSub, fontSize: 14 },
+  summaryAmt:     { fontWeight: '800', fontSize: 14 },
+  summarySettled: { color: '#2e7d32', fontSize: 14, fontWeight: '600' },
+
+  scroll: { paddingHorizontal: SPACING.md, paddingTop: 4, paddingBottom: 100 },
+});
