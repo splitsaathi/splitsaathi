@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   TextInput, ActivityIndicator, Image, Alert, FlatList, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { COLORS, SPACING, RADIUS, SHADOW } from '../../theme';
 import { useAuthStore, useGroupStore, useFriendStore } from '../../store';
@@ -57,9 +58,9 @@ async function fetchDiscoverTrips() {
   }));
 }
 
-const FILTERS  = ['All','Wildlife','Adventure','Heritage','Beaches','Hill Stations','Spiritual','Nature','City Tour','Offbeat','Pilgrimage','Desert','Backwaters','Trekking','Skiing','Lakes'];
+const FILTERS  = ['All','Wildlife','Adventure','Heritage','Beaches','Hill Stations','Spiritual','Nature','City Tour','Pilgrimage'];
 const PRICE_F  = ['All','Budget Friendly (Under ₹7k)','Premium (Above ₹7k)'];
-const SORT_OPT = [['popular','⭐ Popular'],['distance','📍 Nearest'],['price_asc','💰 Low Price'],['price_desc','💎 Premium']];
+const SORT_OPT = [['popular','⭐ Popular'],['distance','📍 Nearest'],['price_asc','💰 Low Price']];
 
 // ── Friend picker for Activate & Sync ────────────────────────────────────────
 function SyncFriendPicker({ friends, trip, activating, onActivate, onCancel }) {
@@ -151,7 +152,14 @@ export default function TripDiscoveryScreen({ navigation }) {
       })
       .catch(() => {}); // keep INR default if this fails
   }, [profile?.id]);
-  useEffect(() => { handleGetLocation(); }, []); // auto-sort nearest-to-farthest on load
+  // Re-fetch location every time this screen comes into focus (not just once
+  // on first mount), so distances/sorting always reflect where the user
+  // currently is if they've moved since their last visit.
+  useFocusEffect(
+    useCallback(() => {
+      handleGetLocation();
+    }, [])
+  );
   useEffect(() => {
     fetch('https://api.exchangerate-api.com/v4/latest/INR')
       .then(res => res.json())
