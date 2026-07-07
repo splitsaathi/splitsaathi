@@ -243,10 +243,12 @@ export default function TripDiscoveryScreen({ navigation }) {
       const mPrice = priceFilter === 'All' ||
         (priceFilter === 'Budget Friendly (Under ₹7k)' && t.startsFrom < 7000) ||
         (priceFilter === 'Premium (Above ₹7k)'         && t.startsFrom >= 7000);
-      const mDist = sortBy === 'distance' ? t.dist <= 5000 : true;
+      // "Nearest" only SORTS by distance — it never hides trips, even if
+      // location data is momentarily off, so results can never go blank.
+      const mDist = true;
       return mSrch && mType && mRegion && mPrice && mDist;
     }).sort((a, b) => {
-      if (sortBy === 'distance')   return a.dist - b.dist;
+      if (sortBy === 'distance')   return (a.dist ?? Infinity) - (b.dist ?? Infinity);
       if (sortBy === 'price_asc')  return a.startsFrom - b.startsFrom;
       if (sortBy === 'price_desc') return b.startsFrom - a.startsFrom;
       return b.rating - a.rating;
@@ -420,32 +422,40 @@ export default function TripDiscoveryScreen({ navigation }) {
               </TouchableOpacity>
             )}
           </View>
-          <Text style={s.filterLabel}>REGION</Text>
-          <View style={{ flexDirection:'row', gap:8, marginBottom:10 }}>
+          <Text style={s.filterLabel}>SORT BY</Text>
+          <View style={{ flexDirection:'row', gap:8, flexWrap:'wrap', marginBottom:14 }}>
+            {SORT_OPT.map(([val,lbl]) => (
+              <TouchableOpacity key={val} style={[s.sortBtn, sortBy===val && s.sortBtnActive]} onPress={() => setSortBy(val)}>
+                <Text style={[s.sortBtnText, sortBy===val && { color:'#fff' }]}>{lbl}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={s.filterLabel}>WHERE</Text>
+          <View style={{ flexDirection:'row', gap:8, marginBottom:8 }}>
             {['All','India','International'].map(r => (
               <TouchableOpacity key={r} style={[s.filterChip, regionFilter===r && s.filterChipActive]} onPress={() => setRegionFilter(r)}>
                 <Text style={[s.filterChipText, regionFilter===r && { color:'#fff' }]}>{r === 'All' ? '🌍 All' : r === 'India' ? '🇮🇳 India' : '✈️ International'}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={s.filterLabel}>CATEGORY</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom:10 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom:14 }}>
             {FILTERS.map(f => (
               <TouchableOpacity key={f} style={[s.filterChip, filter===f && { backgroundColor: CAT_COLOR[f]||COLORS.primary, borderColor: CAT_COLOR[f]||COLORS.primary }]} onPress={() => setFilter(f)}>
                 <Text style={[s.filterChipText, filter===f && { color:'#fff' }]}>{f}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <Text style={s.filterLabel}>BUDGET</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom:10 }}>
+
+          <Text style={s.filterLabel}>BUDGET & CURRENCY</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom:8 }}>
             {PRICE_F.map(p => (
               <TouchableOpacity key={p} style={[s.filterChip, priceFilter===p && s.filterChipActive]} onPress={() => setPriceFilter(p)}>
                 <Text style={[s.filterChipText, priceFilter===p && { color:'#fff' }]}>{p}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <Text style={s.filterLabel}>CURRENCY</Text>
-          <View style={{ flexDirection:'row', gap:8, marginBottom:10 }}>
+          <View style={{ flexDirection:'row', gap:8 }}>
             <TouchableOpacity style={[s.filterChip, currency==='INR' && s.filterChipActive]} onPress={() => setCurrency('INR')}>
               <Text style={[s.filterChipText, currency==='INR' && { color:'#fff' }]}>₹ INR</Text>
             </TouchableOpacity>
@@ -455,25 +465,17 @@ export default function TripDiscoveryScreen({ navigation }) {
               </TouchableOpacity>
             )}
           </View>
-          <Text style={s.filterLabel}>SORT BY</Text>
-          <View style={{ flexDirection:'row', gap:8, flexWrap:'wrap' }}>
-            {SORT_OPT.map(([val,lbl]) => (
-              <TouchableOpacity key={val} style={[s.sortBtn, sortBy===val && s.sortBtnActive]} onPress={() => setSortBy(val)}>
-                <Text style={[s.sortBtnText, sortBy===val && { color:'#fff' }]}>{lbl}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </View>
       )}
 
       {!cityName ? (
         <TouchableOpacity style={s.locBanner} onPress={handleGetLocation} disabled={locLoading}>
-          <Text style={s.locBannerText}>📍 Allow Location — Sort {allTrips.length} trips nearest to you (up to 5000 km)</Text>
+          <Text style={s.locBannerText}>📍 Allow Location — Sort all {allTrips.length} trips by nearest to you</Text>
           {locLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: COLORS.gold, fontWeight:'800', fontSize:13 }}>Allow →</Text>}
         </TouchableOpacity>
       ) : (
         <View style={s.locActive}>
-          <Text style={s.locActiveText}>📍 Sorted from <Text style={{ fontWeight:'800' }}>{cityName}</Text> — {filtered.length} trips within 5000 km</Text>
+          <Text style={s.locActiveText}>📍 Sorted from <Text style={{ fontWeight:'800' }}>{cityName}</Text> — {filtered.length} trips, nearest first</Text>
         </View>
       )}
 
