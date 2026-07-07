@@ -113,6 +113,12 @@ export default function TripDiscoveryScreen({ navigation }) {
   const [filter,      setFilter]      = useState('All');
   const [priceFilter, setPriceFilter] = useState('All');
   const [regionFilter, setRegionFilter] = useState('All'); // 'All' | 'India' | 'International'
+  // Pending selections inside the filter panel — only applied to the real
+  // filter/priceFilter/regionFilter state above when "Apply Filters" is tapped,
+  // so results don't flicker to "0 found" while still picking options.
+  const [pendingFilter,       setPendingFilter]       = useState('All');
+  const [pendingPriceFilter,  setPendingPriceFilter]  = useState('All');
+  const [pendingRegionFilter, setPendingRegionFilter] = useState('All');
   const [userCurrency, setUserCurrency] = useState({ code: 'INR', symbol: '₹' }); // from signup profile
   const [currency,    setCurrency]    = useState('INR'); // 'INR' | user's own currency code
   const [rates,       setRates]       = useState({}); // live INR -> other currencies
@@ -387,7 +393,13 @@ export default function TripDiscoveryScreen({ navigation }) {
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}><Text style={s.backText}>‹</Text></TouchableOpacity>
         <Text style={s.title}>Explore Trips ({allTrips.length})</Text>
-        <TouchableOpacity onPress={() => setShowFilters(p => !p)} style={s.filterToggle}>
+        <TouchableOpacity
+          onPress={() => {
+            if (!showFilters) { setPendingFilter(filter); setPendingPriceFilter(priceFilter); setPendingRegionFilter(regionFilter); }
+            setShowFilters(p => !p);
+          }}
+          style={s.filterToggle}
+        >
           <Text style={{ color:'#fff', fontSize:12, fontWeight:'700' }}>{showFilters ? 'Hide ▲' : 'Filters ▼'}</Text>
         </TouchableOpacity>
       </View>
@@ -434,15 +446,15 @@ export default function TripDiscoveryScreen({ navigation }) {
           <Text style={s.filterLabel}>WHERE</Text>
           <View style={{ flexDirection:'row', gap:8, marginBottom:8 }}>
             {['All','India','International'].map(r => (
-              <TouchableOpacity key={r} style={[s.filterChip, regionFilter===r && s.filterChipActive]} onPress={() => setRegionFilter(r)}>
-                <Text style={[s.filterChipText, regionFilter===r && { color:'#fff' }]}>{r === 'All' ? '🌍 All' : r === 'India' ? '🇮🇳 India' : '✈️ International'}</Text>
+              <TouchableOpacity key={r} style={[s.filterChip, pendingRegionFilter===r && s.filterChipActive]} onPress={() => setPendingRegionFilter(r)}>
+                <Text style={[s.filterChipText, pendingRegionFilter===r && { color:'#fff' }]}>{r === 'All' ? '🌍 All' : r === 'India' ? '🇮🇳 India' : '✈️ International'}</Text>
               </TouchableOpacity>
             ))}
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom:14 }}>
             {FILTERS.map(f => (
-              <TouchableOpacity key={f} style={[s.filterChip, filter===f && { backgroundColor: CAT_COLOR[f]||COLORS.primary, borderColor: CAT_COLOR[f]||COLORS.primary }]} onPress={() => setFilter(f)}>
-                <Text style={[s.filterChipText, filter===f && { color:'#fff' }]}>{f}</Text>
+              <TouchableOpacity key={f} style={[s.filterChip, pendingFilter===f && { backgroundColor: CAT_COLOR[f]||COLORS.primary, borderColor: CAT_COLOR[f]||COLORS.primary }]} onPress={() => setPendingFilter(f)}>
+                <Text style={[s.filterChipText, pendingFilter===f && { color:'#fff' }]}>{f}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -450,12 +462,12 @@ export default function TripDiscoveryScreen({ navigation }) {
           <Text style={s.filterLabel}>BUDGET & CURRENCY</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom:8 }}>
             {PRICE_F.map(p => (
-              <TouchableOpacity key={p} style={[s.filterChip, priceFilter===p && s.filterChipActive]} onPress={() => setPriceFilter(p)}>
-                <Text style={[s.filterChipText, priceFilter===p && { color:'#fff' }]}>{p}</Text>
+              <TouchableOpacity key={p} style={[s.filterChip, pendingPriceFilter===p && s.filterChipActive]} onPress={() => setPendingPriceFilter(p)}>
+                <Text style={[s.filterChipText, pendingPriceFilter===p && { color:'#fff' }]}>{p}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <View style={{ flexDirection:'row', gap:8 }}>
+          <View style={{ flexDirection:'row', gap:8, marginBottom:16 }}>
             <TouchableOpacity style={[s.filterChip, currency==='INR' && s.filterChipActive]} onPress={() => setCurrency('INR')}>
               <Text style={[s.filterChipText, currency==='INR' && { color:'#fff' }]}>₹ INR</Text>
             </TouchableOpacity>
@@ -464,6 +476,21 @@ export default function TripDiscoveryScreen({ navigation }) {
                 <Text style={[s.filterChipText, currency===userCurrency.code && { color:'#fff' }]}>{userCurrency.symbol} {userCurrency.code}</Text>
               </TouchableOpacity>
             )}
+          </View>
+
+          <View style={{ flexDirection:'row', gap:10 }}>
+            <TouchableOpacity
+              style={{ flex:1, borderWidth:1.5, borderColor: COLORS.border, borderRadius:10, paddingVertical:12, alignItems:'center' }}
+              onPress={() => { setPendingFilter('All'); setPendingPriceFilter('All'); setPendingRegionFilter('All'); setFilter('All'); setPriceFilter('All'); setRegionFilter('All'); }}
+            >
+              <Text style={{ color: COLORS.textSub, fontWeight:'700', fontSize:14 }}>Reset</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex:2, backgroundColor: COLORS.primary, borderRadius:10, paddingVertical:12, alignItems:'center' }}
+              onPress={() => { setFilter(pendingFilter); setPriceFilter(pendingPriceFilter); setRegionFilter(pendingRegionFilter); setShowFilters(false); }}
+            >
+              <Text style={{ color:'#fff', fontWeight:'800', fontSize:14 }}>Apply Filters</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -485,8 +512,8 @@ export default function TripDiscoveryScreen({ navigation }) {
           {filter !== 'All' ? ` · ${filter}` : ''}
           {priceFilter !== 'All' ? ` · ${priceFilter}` : ''}
         </Text>
-        {(filter !== 'All' || priceFilter !== 'All' || search) && (
-          <TouchableOpacity onPress={() => { setFilter('All'); setPriceFilter('All'); setSearch(''); }}>
+        {(filter !== 'All' || priceFilter !== 'All' || regionFilter !== 'All' || search) && (
+          <TouchableOpacity onPress={() => { setFilter('All'); setPriceFilter('All'); setRegionFilter('All'); setPendingFilter('All'); setPendingPriceFilter('All'); setPendingRegionFilter('All'); setSearch(''); }}>
             <Text style={{ color: COLORS.owe, fontSize:12, fontWeight:'700' }}>✕ Clear All</Text>
           </TouchableOpacity>
         )}
@@ -512,10 +539,13 @@ export default function TripDiscoveryScreen({ navigation }) {
         ListEmptyComponent={
           <View style={{ alignItems:'center', paddingVertical:60 }}>
             <Text style={{ fontSize:48, marginBottom:12 }}>🗺️</Text>
-            <Text style={{ color: COLORS.text, fontWeight:'700', fontSize:16, marginBottom:6 }}>No trips found</Text>
-            <Text style={{ color: COLORS.textMuted, fontSize:13, textAlign:'center' }}>Try clearing filters or changing search</Text>
+            <Text style={{ color: COLORS.text, fontWeight:'700', fontSize:16, marginBottom:6 }}>No trips match these filters</Text>
+            <Text style={{ color: COLORS.textMuted, fontSize:13, textAlign:'center', paddingHorizontal:20 }}>
+              {[filter !== 'All' && filter, priceFilter !== 'All' && priceFilter, regionFilter !== 'All' && regionFilter].filter(Boolean).join(' + ') || 'Try changing your search'}
+              {'\n'}Try removing one of these filters.
+            </Text>
             <TouchableOpacity style={{ marginTop:16, backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingHorizontal:20, paddingVertical:10 }}
-              onPress={() => { setFilter('All'); setPriceFilter('All'); setSearch(''); }}>
+              onPress={() => { setFilter('All'); setPriceFilter('All'); setRegionFilter('All'); setPendingFilter('All'); setPendingPriceFilter('All'); setPendingRegionFilter('All'); setSearch(''); }}>
               <Text style={{ color:'#fff', fontWeight:'700' }}>Clear All Filters</Text>
             </TouchableOpacity>
           </View>
