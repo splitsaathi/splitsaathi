@@ -10,6 +10,7 @@ const path = require('path');
 const INDEX_PATH = path.join(__dirname, 'docs', 'index.html');
 
 const SEO_TAGS = `
+    <meta name="google-site-verification" content="9gMzF0CUSNY8B9pSufLTXbP90kKxXm7IB5L_fwLOhB8" />
     <title>SplitSaathi — Split Trip & Group Expenses Easily | Free Bill Splitting App</title>
     <meta name="description" content="SplitSaathi helps friends, roommates, and travel groups split expenses fairly and settle up instantly via UPI. Free expense tracker for trips, homes, and group outings across India and worldwide." />
     <meta name="keywords" content="split expenses, expense splitting app, split bills with friends, group expense tracker, trip expense splitter, splitwise alternative India, UPI split payment, roommate expense app, travel expense sharing" />
