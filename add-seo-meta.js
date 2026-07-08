@@ -1,29 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    
-    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
-    <style id="expo-reset">
-      /* These styles make the body full-height */
-      html,
-      body {
-        height: 100%;
-      }
-      /* These styles disable body scrolling if you are using <ScrollView> */
-      body {
-        overflow: hidden;
-      }
-      /* These styles make the root element full-height */
-      #root {
-        display: flex;
-        height: 100%;
-        flex: 1;
-      }
-    </style>
-  <link rel="icon" href="/favicon.ico" />
+// add-seo-meta.js
+// Injects SEO meta tags into docs/index.html after every `expo export`.
+// Run this AFTER fix-index-module.js in your build chain.
+//
+// Usage: node add-seo-meta.js
+
+const fs = require('fs');
+const path = require('path');
+
+const INDEX_PATH = path.join(__dirname, 'docs', 'index.html');
+
+const SEO_TAGS = `
     <title>SplitSaathi — Split Trip & Group Expenses Easily | Free Bill Splitting App</title>
     <meta name="description" content="SplitSaathi helps friends, roommates, and travel groups split expenses fairly and settle up instantly via UPI. Free expense tracker for trips, homes, and group outings across India and worldwide." />
     <meta name="keywords" content="split expenses, expense splitting app, split bills with friends, group expense tracker, trip expense splitter, splitwise alternative India, UPI split payment, roommate expense app, travel expense sharing" />
@@ -59,16 +45,20 @@
       "description": "Split expenses with friends, roommates, and travel groups. Track shared bills and settle up via UPI."
     }
     </script>
+`;
 
-  </head>
+let html = fs.readFileSync(INDEX_PATH, 'utf8');
 
-  <body>
-    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <!-- The root element for your Expo app. -->
-    <div id="root"></div>
-  <script src="/_expo/static/js/web/AppEntry-14e83cb46c71e34ef7ee9507314696b9.js" defer type="module"></script>
-</body>
-</html>
+// Remove any existing <title> Expo puts in (so we don't end up with two)
+html = html.replace(/<title>.*?<\/title>/is, '');
+
+// Remove our own tags if this script already ran before (so re-running is safe)
+html = html.replace(/\n?\s*<title>SplitSaathi[\s\S]*?<\/script>\n/, '');
+
+if (html.includes('</head>')) {
+  html = html.replace('</head>', `${SEO_TAGS}\n  </head>`);
+  fs.writeFileSync(INDEX_PATH, html, 'utf8');
+  console.log('✅ SEO meta tags injected into docs/index.html');
+} else {
+  console.error('❌ Could not find </head> in docs/index.html — SEO tags NOT added.');
+}
