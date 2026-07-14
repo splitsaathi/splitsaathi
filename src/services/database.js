@@ -18,19 +18,22 @@ export const getProfile = (uid) =>
 export const updateProfile = (uid, updates) =>
   supabase.from('profiles').update(updates).eq('id', uid);
 
-export const searchUsers = (query) => {
-  const q = sanitizeSearchInput(query);
-  return supabase.from('profiles')
-    .select(PUBLIC_PROFILE_FIELDS)
-    .or(`name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`)
-    .limit(10);
+// These three use a SECURITY DEFINER database function (search_public_profiles)
+// instead of querying the table directly — it's the only safe way to let
+// someone find a STRANGER (not yet a friend/groupmate) while guaranteeing
+// only safe columns (never upi_id, push_token, premium status) come back.
+export const searchUsers = (query) =>
+  supabase.rpc('search_public_profiles', { search_query: sanitizeSearchInput(query) });
+
+export const findUserByPhone = async (phone) => {
+  const { data, error } = await supabase.rpc('get_public_profile_exact', { phone_in: sanitizeSearchInput(phone) });
+  return { data: data?.[0] || null, error };
 };
 
-export const findUserByPhone = (phone) =>
-  supabase.from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('phone', sanitizeSearchInput(phone)).single();
-
-export const findUserByEmail = (email) =>
-  supabase.from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('email', sanitizeSearchInput(email)).single();
+export const findUserByEmail = async (email) => {
+  const { data, error } = await supabase.rpc('get_public_profile_exact', { email_in: sanitizeSearchInput(email) });
+  return { data: data?.[0] || null, error };
+};
 
 // ── Groups ────────────────────────────────────────────────────────────────────
 export const getMyGroups = (uid) =>
