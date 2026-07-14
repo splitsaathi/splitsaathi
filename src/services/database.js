@@ -1,23 +1,36 @@
 import { supabase } from './supabase';
 
+// Fields safe to expose when looking up ANOTHER user (friend search, contact
+// matching, group member lists). Never include upi_id, push_token,
+// currency/country/state, or premium status here — those are private.
+const PUBLIC_PROFILE_FIELDS = 'id, name, email, phone, avatar_url';
+
+// Strip characters that could break PostgREST's .or()/.ilike() filter syntax
+// (commas, parentheses, percent signs) — prevents filter injection via search input.
+const sanitizeSearchInput = (str) => (str || '').replace(/[,()%]/g, '').trim();
+
 // ── Profiles ───────────────────────────────────────────────────────────────────
+// getProfile: for the CURRENTLY LOGGED-IN user's own profile only (Edit Profile,
+// Account screen). Do not use this to fetch another user's profile.
 export const getProfile = (uid) =>
   supabase.from('profiles').select('*').eq('id', uid).single();
 
 export const updateProfile = (uid, updates) =>
   supabase.from('profiles').update(updates).eq('id', uid);
 
-export const searchUsers = (query) =>
-  supabase.from('profiles')
-    .select('*')
-    .or(`name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
+export const searchUsers = (query) => {
+  const q = sanitizeSearchInput(query);
+  return supabase.from('profiles')
+    .select(PUBLIC_PROFILE_FIELDS)
+    .or(`name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`)
     .limit(10);
+};
 
 export const findUserByPhone = (phone) =>
-  supabase.from('profiles').select('*').eq('phone', phone).single();
+  supabase.from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('phone', sanitizeSearchInput(phone)).single();
 
 export const findUserByEmail = (email) =>
-  supabase.from('profiles').select('*').eq('email', email).single();
+  supabase.from('profiles').select(PUBLIC_PROFILE_FIELDS).eq('email', sanitizeSearchInput(email)).single();
 
 // ── Groups ────────────────────────────────────────────────────────────────────
 export const getMyGroups = (uid) =>
@@ -101,7 +114,7 @@ export const getMyFriends = async (uid) => {
 
   if (error || !data?.length) return { data: [], error };
   const friendIds = data.map(f => f.user_a === uid ? f.user_b : f.user_a);
-  return supabase.from('profiles').select('*').in('id', friendIds);
+  return supabase.from('profiles').select(PUBLIC_PROFILE_FIELDS).in('id', friendIds);
 };
 
 export const addFriend = async (uid, friendId) => {
@@ -151,4 +164,3 @@ export const subscribeToGroups = (userId, onUpdate) => {
     .subscribe();
   return () => supabase.removeChannel(channel);
 };
-
