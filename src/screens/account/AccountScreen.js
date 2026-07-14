@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Switch } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Switch, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore, useGroupStore, useBillStore, useFriendStore } from '../../store';
 import { COLORS, SPACING, RADIUS, SHADOW } from '../../theme';
@@ -17,10 +17,16 @@ export default function AccountScreen({ navigation }) {
   const totalBills = Object.values(bills).flat().length;
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: async () => { await signOut(); clear(); } },
-    ]);
+    const doLogout = async () => { await signOut(); clear(); };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to log out?')) doLogout();
+    } else {
+      Alert.alert('Logout', 'Are you sure you want to log out?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Logout', style: 'destructive', onPress: doLogout },
+      ]);
+    }
   };
 
   const MENU = [
