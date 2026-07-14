@@ -1,10 +1,39 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Switch, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Switch, Platform, Modal, Share, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore, useGroupStore, useBillStore, useFriendStore } from '../../store';
 import { COLORS, SPACING, RADIUS, SHADOW } from '../../theme';
 import Avatar from '../../components/Avatar';
 import { signOut } from '../../services/auth';
+
+const FAQS = [
+  { q: 'How do I split a bill with friends?', a: 'Open a group, tap "+ Add Bill", enter the amount and who\'s involved — SplitSaathi divides it automatically.' },
+  { q: 'How do I settle up with someone?', a: 'Go to the bill or group balance, tap "Settle" next to their name, and confirm — or pay via UPI directly if they\'ve added a UPI ID.' },
+  { q: 'Can I change my currency?', a: 'Yes — your currency is set from your country at signup. Update your country in your profile to change it.' },
+  { q: 'Is my data safe?', a: 'Yes. Your bills, groups, and messages are only visible to you and the people you share them with.' },
+  { q: 'How do I add a friend?', a: 'Go to Friends → Add Friend, then search by name, email, or phone, or invite them via WhatsApp/Email.' },
+  { q: 'Can I use this outside India?', a: 'Yes — SplitSaathi works worldwide. UPI settle-up currently only works for Indian bank accounts.' },
+];
+
+const PRIVACY_POLICY = `Last updated: July 2026
+
+SplitSaathi collects only what's needed to run the app: your name, email, phone (optional), and the expenses/groups you create. If you add a UPI ID, it's shown only to people you split bills with, so they can pay you.
+
+We never sell your data. Your bills and group chats are private — visible only to you and people you're grouped with.
+
+You can delete your account and data anytime from Account settings, or by contacting us.
+
+This is a summary for a small, independently-run app — for questions, reach out via the Help section.`;
+
+const TERMS_OF_SERVICE = `Last updated: July 2026
+
+SplitSaathi is a free tool to help you split and track shared expenses with friends, family, and groups.
+
+By using the app, you agree to: use it for lawful purposes, keep your account secure, and not misuse the friend/group features to spam or harass others.
+
+SplitSaathi is provided "as is" — we work hard to keep it reliable, but can't guarantee it will always be error-free. UPI settlements happen directly between users; SplitSaathi does not hold or process your money.
+
+We may update these terms as the app grows. Continued use means you accept the latest version.`;
 
 export default function AccountScreen({ navigation }) {
   const { profile, clear }   = useAuthStore();
@@ -14,7 +43,29 @@ export default function AccountScreen({ navigation }) {
   const { bills }             = useBillStore();
   const { friends }           = useFriendStore();
   const [notifs, setNotifs]   = useState(true);
+  const [activeModal, setActiveModal] = useState(null); // 'faq' | 'privacy' | 'terms' | null
   const totalBills = Object.values(bills).flat().length;
+
+  const handleRate = () => {
+    const msg = 'Thanks for the love! We\'re not on the App Store/Play Store just yet — once we launch there, you\'ll be first to know. For now, tell your friends about us instead? 💚';
+    if (Platform.OS === 'web') window.alert(msg);
+    else Alert.alert('Rate SplitSaathi', msg);
+  };
+
+  const handleShare = async () => {
+    const message = 'I use SplitSaathi to split expenses with friends — it\'s free and makes settling up so much easier! Check it out: https://www.splitsathi.com';
+    if (Platform.OS === 'web') {
+      if (navigator.share) {
+        try { await navigator.share({ title: 'SplitSaathi', text: message, url: 'https://www.splitsathi.com' }); }
+        catch (e) { /* user cancelled share — no-op */ }
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(message);
+        window.alert('Link copied! Paste it anywhere to share with friends.');
+      }
+    } else {
+      await Share.share({ message });
+    }
+  };
 
   const handleLogout = () => {
     const doLogout = async () => { await signOut(); clear(); };
@@ -42,11 +93,11 @@ export default function AccountScreen({ navigation }) {
       { icon: '💎', label: 'Go Premium',         onPress: () => navigation.navigate('Premium') },
     ]},
     { title: 'Support', items: [
-      { icon: '❓', label: 'Help & FAQ',       onPress: () => {} },
-      { icon: '⭐', label: 'Rate the App',     onPress: () => {} },
-      { icon: '📤', label: 'Share with Friend',onPress: () => {} },
-      { icon: '📄', label: 'Privacy Policy',   onPress: () => {} },
-      { icon: '📋', label: 'Terms of Service', onPress: () => {} },
+      { icon: '❓', label: 'Help & FAQ',       onPress: () => setActiveModal('faq') },
+      { icon: '⭐', label: 'Rate the App',     onPress: handleRate },
+      { icon: '📤', label: 'Share with Friend',onPress: handleShare },
+      { icon: '📄', label: 'Privacy Policy',   onPress: () => setActiveModal('privacy') },
+      { icon: '📋', label: 'Terms of Service', onPress: () => setActiveModal('terms') },
     ]},
   ];
 
@@ -118,6 +169,31 @@ export default function AccountScreen({ navigation }) {
         <Text style={s.version}>Splitsathi v1.0.0 · Heritage Edition</Text>
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      <Modal visible={!!activeModal} animationType="slide" transparent onRequestClose={() => setActiveModal(null)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>
+                {activeModal === 'faq' ? 'Help & FAQ' : activeModal === 'privacy' ? 'Privacy Policy' : 'Terms of Service'}
+              </Text>
+              <TouchableOpacity onPress={() => setActiveModal(null)}>
+                <Text style={s.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={{ padding: SPACING.md }}>
+              {activeModal === 'faq' && FAQS.map((f, i) => (
+                <View key={i} style={s.faqItem}>
+                  <Text style={s.faqQ}>{f.q}</Text>
+                  <Text style={s.faqA}>{f.a}</Text>
+                </View>
+              ))}
+              {activeModal === 'privacy' && <Text style={s.legalText}>{PRIVACY_POLICY}</Text>}
+              {activeModal === 'terms' && <Text style={s.legalText}>{TERMS_OF_SERVICE}</Text>}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -159,5 +235,16 @@ const s = StyleSheet.create({
   logoutBtn:  { backgroundColor: '#fff0f0', borderWidth: 1, borderColor: '#fecaca', borderRadius: RADIUS.lg, padding: 16, alignItems: 'center', marginBottom: SPACING.md },
   logoutText: { color: COLORS.owe, fontWeight: '700', fontSize: 16 },
   version:    { color: COLORS.textMuted, fontSize: 11, textAlign: 'center', marginBottom: SPACING.md },
+
+  // Support modal (FAQ / Privacy / Terms)
+  modalOverlay: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'flex-end' },
+  modalCard:    { backgroundColor: COLORS.bg, borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl, maxHeight: '80%', minHeight: '50%' },
+  modalHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight },
+  modalTitle:   { color: COLORS.text, fontSize: 17, fontWeight: '700' },
+  modalClose:   { color: COLORS.textMuted, fontSize: 18, padding: 4 },
+  faqItem:      { marginBottom: SPACING.md, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight },
+  faqQ:         { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 6 },
+  faqA:         { color: COLORS.textSub, fontSize: 13, lineHeight: 20 },
+  legalText:    { color: COLORS.textSub, fontSize: 13, lineHeight: 21 },
 });
 
